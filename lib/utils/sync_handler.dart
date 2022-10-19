@@ -9,6 +9,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:vajra/db/activity_data_detail/activity_data_detail.dart';
 import 'package:vajra/db/channel_data_detail/channel_data_detail.dart';
 import 'package:vajra/db/database_helper.dart';
+import 'package:vajra/db/form_actions_data_detail/form_action_data_details.dart';
 import 'package:vajra/db/pending_task_data_detail/pending_task_data_detail.dart';
 import 'package:vajra/db/places_data_detail/places_data_detail.dart';
 import 'package:vajra/db/product_data_detail/product_data_detail.dart';
@@ -19,6 +20,7 @@ import 'package:vajra/db/user_stats_data_detail/user_stats_data_detail.dart';
 import 'package:vajra/models/activity_data/activity_data.dart';
 import 'package:vajra/models/channel_data/channel_response.dart';
 import 'package:vajra/models/common_schemes/common_schemes.dart';
+import 'package:vajra/models/form_actions/form_actions_data.dart';
 import 'package:vajra/models/pending_tasks_data/form.dart';
 import 'package:vajra/models/pending_tasks_data/pending_task.dart';
 import 'package:vajra/models/pending_tasks_data/pending_task_response.dart';
@@ -362,6 +364,28 @@ class SyncHandler {
       AppUtils.showMessage('store types error - ${e.toString()}');
     }
 
+    //dynamic user actions service
+    var dynamicUserActions = await AppUtils.requestBuilder(AppUtils.baseUrl + APIServices.dynamicUserActionsService, headers);
+    try {
+      if (dynamicUserActions.statusCode == 200) {
+        handleDynamicUserActions(dynamicUserActions.body);
+      }
+    } catch (e) {
+      AppUtils.showMessage('dynamicUserActions error - ${e.toString()}');
+    }
+
+  }
+
+  void handleDynamicUserActions(String? body){
+    if(body!=null && body.isNotEmpty){
+      List<dynamic> parsedListJson = jsonDecode(body);
+      List<FormActions> forms = List<FormActions>.from(parsedListJson.map<FormActions>((dynamic i) => FormActions.fromJson(i)));
+      instance.deleteAllData(instance.formActionsDataDetail);
+      for(FormActions form in forms){
+        FormActionsDataDetails details = FormActionsDataDetails(form.id, form.tenantId, form.name, form.description, form.status, form.createdAt, form.updatedAt, form.actor, form.group, form.process, form.category, form.formContent, form.documentType, form.permissionId);
+        instance.insert(instance.formActionsDataDetail, details.toJson());
+      }
+    }
   }
 
   void handleStoreTypes(String? body){

@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:vajra/db/activity_data_detail/activity_data_detail.dart';
 import 'package:vajra/db/channel_data_detail/channel_data_detail.dart';
+import 'package:vajra/db/form_actions_data_detail/form_action_data_details.dart';
 import 'package:vajra/db/pending_task_data_detail/pending_task_data_detail.dart';
 import 'package:vajra/db/places_data_detail/places_data_detail.dart';
 import 'package:vajra/db/product_data_detail/product_data_detail.dart';
@@ -32,6 +33,7 @@ class DatabaseHelper {
   final String activitiesDataDetail = 'activity_data_detail';
   final String userStatsDataDetail = 'user_stats_data_detail';
   final String storeTypesDataDetail = 'store_types_data_detail';
+  final String formActionsDataDetail = 'form_actions_data_detail';
 
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
 
@@ -237,6 +239,25 @@ class DatabaseHelper {
         '('
         '${StoreTypesDataDetailFields.id} $primaryKey,'
         '${StoreTypesDataDetailFields.name} $text'
+        ')'
+    );
+
+    await db.execute('CREATE TABLE $formActionsDataDetail'
+        '('
+        '${FormActionsDataDetailsFields.id} $primaryKey,'
+        '${FormActionsDataDetailsFields.tenantId} $text,'
+        '${FormActionsDataDetailsFields.name} $text,'
+        '${FormActionsDataDetailsFields.description} $text,'
+        '${FormActionsDataDetailsFields.status} $boolean,'
+        '${FormActionsDataDetailsFields.createdAt} $text,'
+        '${FormActionsDataDetailsFields.updatedAt} $text,'
+        '${FormActionsDataDetailsFields.actor} $integer,'
+        '${FormActionsDataDetailsFields.group} $integer,'
+        '${FormActionsDataDetailsFields.process} $integer,'
+        '${FormActionsDataDetailsFields.category} $text,'
+        '${FormActionsDataDetailsFields.formContent} $text,'
+        '${FormActionsDataDetailsFields.documentType} $text,'
+        '${FormActionsDataDetailsFields.permissionId} $integer'
         ')'
     );
   }
