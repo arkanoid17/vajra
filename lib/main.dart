@@ -1,8 +1,11 @@
+
 import 'package:flutter/material.dart';
 import 'package:vajra/resource_helper/color_constants.dart';
 import 'package:vajra/resource_helper/strings.dart';
+import 'package:vajra/screens/dashboard.dart';
 import 'package:vajra/screens/login.dart';
 import 'package:vajra/screens/splash_screen.dart';
+import 'package:vajra/services/navigation_service.dart';
 
 void main() {
   runApp(const MainScreen());
@@ -19,12 +22,13 @@ class MainScreen extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: ColorConstants.colorPrimary,
       ),
+      navigatorKey: NavigationService.navigatorKey,
       initialRoute: '/',
       routes: {
         // When navigating to the "/" route, build the FirstScreen widget.
         '/': (context) => SplashScreen(),
         '/login': (context) => LoginPage(),
-        // '/dashboard': (context) => Dashboard(),
+        '/dashboard': (context) => Dashboard(),
       },
     );
   }

@@ -1,12 +1,17 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vajra/dialogs/country_code_dialog.dart';
 import 'package:vajra/models/country_code/country_code.dart';
+import 'package:vajra/models/login/login_response.dart';
 import 'package:vajra/resource_helper/color_constants.dart';
 import 'package:vajra/resource_helper/strings.dart';
+import 'package:vajra/services/APIServices.dart';
 import 'package:vajra/utils/app_utils.dart';
+import 'package:http/http.dart' as http;
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -19,7 +24,9 @@ class _LoginPage extends State<LoginPage> {
   bool _isHidden = true;
   bool _isPressed = false;
 
-  var _countryCodeView;
+  SharedPreferences? prefs;
+
+  String deviceId = '';
 
   TextEditingController companyController = TextEditingController();
   TextEditingController codeController = TextEditingController();
@@ -29,12 +36,25 @@ class _LoginPage extends State<LoginPage> {
 
   List<CountryCode> countryList = [];
 
-
   @override
   Widget build(BuildContext context) {
     setState(() {
       codeController.text = "+91";
     });
+
+    if(deviceId==""){
+      AppUtils.getDeviceId().then((value) => {
+        deviceId = value!,
+      });
+    }
+
+    if(prefs==null){
+      AppUtils.getPrefs().then((value) => {
+        setState(() {
+          prefs = value;
+        })
+      });
+    }
 
     return Scaffold(
       backgroundColor: ColorConstants.colorPrimary,
@@ -162,7 +182,9 @@ class _LoginPage extends State<LoginPage> {
                               : Expanded(
                                   child: ElevatedButton(
                                       onPressed: () => {
-                                            if (companyController.text
+                                        FocusManager.instance.primaryFocus?.unfocus(),
+
+                                        if (companyController.text
                                                     .toString() !=
                                                 '')
                                               {
@@ -238,49 +260,81 @@ class _LoginPage extends State<LoginPage> {
   }
 
   showErrorMessage(var message) {
-    AppUtils.showMessage(context, message);
+    AppUtils.showMessage( message);
   }
 
   showCountryCodeSelectionDialog() {
-    if (countryList.isEmpty) {
-      setState(() {
-        _countryCodeView = getCircularProgress();
-      });
-
-      DefaultAssetBundle.of(context)
-          .loadString("assets/json/country.json")
-          .then((value) => {
-        countryList = (json.decode(value) as List)
-            .map((i) => CountryCode.fromJson(i))
-            .toList(),
-        setCountryCodeDialogView()
-      });
-    } else {
-      setCountryCodeDialogView();
-    }
-
     AppUtils.showBottomDialog(
-        context, true, false, Colors.white, _countryCodeView);
-  }
-
-  getCircularProgress() {
-    return  const SizedBox(
-      height: 200,
-      child:  Center(
-        child: CircularProgressIndicator(
-          color: ColorConstants.colorPrimary,
-        ),
-      ),
+        context, true, true, Colors.white,CountryCodeDialog(countryList: countryList, codeController: codeController)
     );
   }
 
-  setCountryCodeDialogView() {
-    setState(() {
-      _countryCodeView = CountryCodeDialog(countryList: countryList, codeController: codeController);
+  callLogin(String company, String number, String password) async {
+    var request = http.MultipartRequest(
+        "POST",
+        Uri.parse(AppUtils.baseUrl + APIServices.login)
+    );
+    request.headers.addAll(AppUtils.headers(company, ""));
+    request.fields['username'] = number;
+    request.fields['password'] = password;
+    request.fields['device_id'] = deviceId;
+
+
+    LoginResponse loginResponse;
+    http.Response.fromStream(await request.send())
+    .timeout(const Duration(seconds: 10), onTimeout: () {
+      throw Exception(TimeoutException(AppStrings.login_error));
+    })
+    .then((value) => {
+
+      setState((){
+        _isPressed = false;
+      }),
+
+      //check for status item of response
+
+      if(value.body!=''){
+        loginResponse = LoginResponse.fromJson(json.decode(value.body)) ,
+        if(loginResponse.status=="OK"){
+          saveUserData(loginResponse),
+          Navigator.pushReplacementNamed(context, '/dashboard')
+        }else{
+          // if(loginResponse.message=='device_changed'){
+          //   AppUtils.showMessage( AppStrings.deviceChanged)
+          // }else if(loginResponse.message=='wrong_credentials'){
+          //   AppUtils.showMessage( AppStrings.wrongCredentials)
+          // }else{
+          //   showErrorMessage(AppStrings.login_error)
+          // }
+
+          AppUtils.showMessage( loginResponse.status)
+        }
+
+      }else{
+        showErrorMessage(AppStrings.login_error)
+      }
+    })
+    .onError((error, stackTrace) => {
+      setState((){
+        _isPressed = false;
+      }),
+      showErrorMessage(error.toString()),
+
     });
   }
 
-  callLogin(String company, String number, String password) {}
+  saveUserData(LoginResponse empData) {
+    prefs!.setString('token', empData.data.token!=null?empData.data.token!:"");
+    prefs!.setString('name', empData.data.name!);
+    prefs!.setString('user_id', empData.data.userId!);
+    prefs!.setInt('server_id', empData.data.id!);
+    prefs!.setBool('is_external', empData.data.isExternal!);
+    prefs!.setString('tenant_id', empData.data.tenantId!);
+  }
+
+
+
+
 
 
 }

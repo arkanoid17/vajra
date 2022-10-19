@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vajra/utils/app_utils.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -12,14 +14,12 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreen extends State<SplashScreen> {
 
+  SharedPreferences? prefs;
 
   void navigate() {
-    // bool hasToken = prefs.containsKey('token');
-    // prefs.containsKey('token')
-    //     ? Navigator.pushReplacementNamed(context, '/dashboard')
-    //     : Navigator.pushReplacementNamed(context, '/login');
-
-    Navigator.pushReplacementNamed(context, '/login');
+    prefs!.containsKey('token')
+        ? Navigator.pushReplacementNamed(context, '/dashboard')
+        : Navigator.pushReplacementNamed(context, '/login');
   }
 
   void splashTimer() {
@@ -28,11 +28,32 @@ class _SplashScreen extends State<SplashScreen> {
     scheduleTimeout(AppUtils.splashTimeout);
   }
 
+  void checkPermissions() async{
+    Map<Permission, PermissionStatus> statuses = await [
+      Permission.location,
+      Permission.storage,
+      //add more permission to request here.
+    ].request();
+
+    if(statuses[Permission.location].isGranted && statuses[Permission.storage].isGranted){
+      splashTimer();
+    }else{
+      Permission.location.request();
+      AppUtils.showMessage( "Please grant all permissions");
+      // checkPermissions();
+    }
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
 
-    splashTimer();
+    AppUtils.getPrefs().then((value) => {
+      prefs = value,
+      checkPermissions()
+    });
+
 
     return Scaffold(
       body: Container(

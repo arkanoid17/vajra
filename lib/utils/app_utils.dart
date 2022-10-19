@@ -1,14 +1,32 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:http/http.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'package:vajra/models/user_data/user_data.dart';
+import 'package:vajra/services/navigation_service.dart';
 
 class AppUtils {
   static const int splashTimeout = 3 * 1000; //3000 milisecond is 3 seconds
 
-  static void showMessage(BuildContext ctx, var message) {
+  static const String version = "2.30";
+
+  static bool isSyncGoingOn = false;
+
+  static int syncInterval = 2;
+
+  static int db_version = 1;
+
+  static void showMessage(var message){
     var snackbar = SnackBar(
       content: Text(message),
     );
-    ScaffoldMessenger.of(ctx).showSnackBar(snackbar);
+    ScaffoldMessenger.of(NavigationService.navigatorKey.currentContext!).showSnackBar(snackbar);
   }
 
   static const String PROD_URL = "https://api.glenmark.adjoint.in/";
@@ -21,7 +39,7 @@ class AppUtils {
 
   static const String sh_pref = 'Vajra';
 
-  static void showBottomDialog(BuildContext context,bool isDismissable,bool isScrollControlled, Color backgroundColor,view){
+  static showBottomDialog(BuildContext context,bool isDismissable,bool isScrollControlled, Color backgroundColor,view){
     showModalBottomSheet(
         context: context,
         isDismissible: isDismissable,
@@ -37,6 +55,53 @@ class AppUtils {
         builder: (ctx) {
           return view;
         });
+  }
+
+  static Map<String,String> headers(String tenantId,String token){
+    Map<String,String> headers = {};
+    if(tenantId!=""){
+      headers['tenant-id'] = tenantId;
+    }
+    if(token!=""){
+      headers['Authorization'] = "Token $token";
+    }
+    headers["APP-VERSION"] = version;
+    headers["CLIENT"] = "ANDROID";
+    return headers;
+  }
+
+  static Future<String?> getDeviceId() async {
+    var deviceInfo = DeviceInfoPlugin();
+    if (Platform.isIOS) {
+      var iosDeviceInfo = await deviceInfo.iosInfo;
+      return iosDeviceInfo.identifierForVendor; // unique ID on iOS
+    } else if (Platform.isAndroid) {
+      var androidDeviceInfo = await deviceInfo.androidInfo;
+      return androidDeviceInfo.id; // unique ID on Android
+    }
+  }
+
+  static Future<SharedPreferences> getPrefs() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs;
+  }
+
+  static Future<Response> requestBuilder(String url,Map<String,String> headers) {
+    return  http.get(Uri.parse(url),headers: headers).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          return http.Response('Error', 408); // Request Timeout response status code
+        });
+  }
+
+  static UserData? getUserData(SharedPreferences prefs){
+    String? user = prefs.getString('user_data');
+    try{
+      return UserData.fromJson(jsonDecode(user!));
+    }catch(e){
+      showMessage(e.toString());
+    }
+    return null;
   }
 
 }

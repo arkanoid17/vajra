@@ -25,4 +25,37 @@ class AppStrings {
   static const logout = 'Logout';
   static const actions = 'Actions';
   static const shareBackup = 'Share Backup';
+  static const deviceChanged = 'Please contact manager or admin to reset your device!';
+  static const wrongCredentials = 'Incorrect password. Please try again!';
+  static const welcomeToApplication = 'Hello, Welcome to Vajra application! ';
+  static const fetchTime = 'fetch_time';
+  static const requestPermission = 'Request Permission';
+  static const syncStarted = 'Sync started!';
+  static const String key_no_data = 'No data';
+  static const String key_start = 'Start';
+  static const String key_success = 'Success';
+  static const String key_failure = 'Failure';
+  static const String key_start_loading = 'Start Loading';
+  static const String key_stop_loading = 'Stop Loading';
+  static const String key_set_places = 'set_places_dropdown';
+  static const String key_update_fetch_time = 'update_fetch_time';
+  static const String key_data_success = 'data_success';
+  static const String key_data_fail = 'data_fail';
+  static const String key_sync_dialog = 'sync_dialog';
+  static const String key_online_color = 'online_color';
+  static const String key_offline_color = 'offline_color';
+  static const String key_set_chart = 'set_chart';
+  static const String key_update_user_stats = 'update_user_stats';
+  static const String key_initiali_fail = 'initial_fail';
+  static const String key_is_sync_going_on = 'is_sync_going_on';
+  static const String key_hide_progress = 'hide_progress';
+  static const String key_sync_progress = 'sync_progress';
+  static const String selectOption = 'Select Option';
+  static const String bills = 'Bills';
+  static const String noBills = 'No Bills';
+  static const String nrv = 'NRV';
+  static const String today = 'Today';
+  static const String thisMonth = 'In this\nMonth';
+  static const String pendingToSync = 'Pending\nto Sync';
+
 }
