@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:fbroadcast/fbroadcast.dart';
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:http/http.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:vajra/db/activity_data_detail/activity_data_detail.dart';
@@ -12,9 +14,15 @@ import 'package:vajra/db/database_helper.dart';
 import 'package:vajra/db/form_actions_data_detail/form_action_data_details.dart';
 import 'package:vajra/db/pending_task_data_detail/pending_task_data_detail.dart';
 import 'package:vajra/db/places_data_detail/places_data_detail.dart';
+import 'package:vajra/db/pricing_data_detail/pricing_data_detail.dart';
 import 'package:vajra/db/product_data_detail/product_data_detail.dart';
+import 'package:vajra/db/reasons_data_detail/reasons_data_detail.dart';
 import 'package:vajra/db/schemes_data_detail/schemes_data_detail.dart';
+import 'package:vajra/db/store_beat_mapping_data_detail/store_beat_mapping_data_detail.dart';
+import 'package:vajra/db/store_color_data_detail/store_color_data_detail.dart';
+import 'package:vajra/db/store_price_mapping_data_detail/store_price_mapping_data_detail.dart';
 import 'package:vajra/db/store_types_data_detail/store_types_data_detail.dart';
+import 'package:vajra/db/stores_data_detail/stores_data_detail.dart';
 import 'package:vajra/db/user_hierarchy_data_detail/user_hierarchy_data_detail.dart';
 import 'package:vajra/db/user_stats_data_detail/user_stats_data_detail.dart';
 import 'package:vajra/models/activity_data/activity_data.dart';
@@ -25,9 +33,18 @@ import 'package:vajra/models/pending_tasks_data/form.dart';
 import 'package:vajra/models/pending_tasks_data/pending_task.dart';
 import 'package:vajra/models/pending_tasks_data/pending_task_response.dart';
 import 'package:vajra/models/place_data/places.dart';
+import 'package:vajra/models/pricing_data/pricing_response.dart';
+import 'package:vajra/models/pricing_data/product_pricing_obj.dart';
 import 'package:vajra/models/product/product_response.dart';
+import 'package:vajra/models/reasons_data/reasons.dart';
+import 'package:vajra/models/reasons_data/reasons_response.dart';
 import 'package:vajra/models/store_types_data/store_types_data.dart';
 import 'package:vajra/models/store_types_data/store_types_response.dart';
+import 'package:vajra/models/stores_data/colours.dart';
+import 'package:vajra/models/stores_data/pricing.dart';
+import 'package:vajra/models/stores_data/store_beat.dart';
+import 'package:vajra/models/stores_data/store_data.dart';
+import 'package:vajra/models/stores_data/store_response.dart';
 import 'package:vajra/models/user_data/user_data.dart';
 import 'package:vajra/models/user_hierarchy/user_hierarchy.dart';
 import 'package:vajra/models/user_stats_data/user_stats_data.dart';
@@ -51,6 +68,23 @@ class SyncHandler {
 
   // bool isConnected = false;
   Map<String,String> headers = {};
+
+  Map<String,bool> servicesToBeCalled = {};
+  Map<String,bool> servicesFinished = {};
+
+  List<String> serviceNames = [
+    'userHierarchy',
+    'userData',
+    'channelsService',
+    'placeService',
+    'taskService',
+    'userStatsService',
+    'storeTypeService',
+    'dynamicUserActions',
+    'dynamicUserActionList',
+    'reasonService',
+    'storesService'
+  ];
 
 
   void startSync() {
@@ -110,7 +144,18 @@ class SyncHandler {
     return true;
   }
 
+  void getServiceCounts(){
+
+
+    serviceNames.forEach((element) {
+      servicesToBeCalled.putIfAbsent(element, () => false);
+    });
+
+
+  }
+
   void loadServerData() {
+      getServiceCounts();
       fetchUserData();
   }
 
@@ -120,12 +165,15 @@ class SyncHandler {
     try {
       if (userHierarchy.statusCode == 200) {
         handleHierarchyResponse(userHierarchy.body);
+        servicesFinished.putIfAbsent('userHierarchy', () => true);
+        handleSyncCompletion();
         var userData = await AppUtils.requestBuilder(
             AppUtils.baseUrl + APIServices.userData, headers);
         try {
           if (userData.statusCode == 200) {
             handleUserDataResponse(userData.body);
-
+            servicesFinished.putIfAbsent('userData', () => true);
+            handleSyncCompletion();
             if (AppUtils.getUserData(prefs)!=null) {
               callOtherServices();
             } else {
@@ -134,15 +182,23 @@ class SyncHandler {
             }
 
           } else {
+            servicesFinished.putIfAbsent('userData', () => false);
+            handleSyncCompletion();
             sendBroadcastToDashboard(AppStrings.key_initiali_fail);
           }
         } catch (e) {
+          servicesFinished.putIfAbsent('userData', () => false);
+          handleSyncCompletion();
           sendBroadcastToDashboard(AppStrings.key_initiali_fail);
         }
       } else {
+        servicesFinished.putIfAbsent('userHierarchy', () => false);
+        handleSyncCompletion();
         sendBroadcastToDashboard(AppStrings.key_initiali_fail);
       }
     } catch (e) {
+      servicesFinished.putIfAbsent('userHierarchy', () => false);
+      handleSyncCompletion();
       sendBroadcastToDashboard(AppStrings.key_initiali_fail);
     }
   }
@@ -309,9 +365,13 @@ class SyncHandler {
     try {
       if (channelsService.statusCode == 200) {
         handleChannelResponse(channelsService.body);
+        servicesFinished.putIfAbsent('channelsService', () => true);
+        handleSyncCompletion();
       }
     } catch (e) {
       AppUtils.showMessage('channel error - ${e.toString()}');
+      servicesFinished.putIfAbsent('channelsService', () => false);
+      handleSyncCompletion();
     }
 
     //place service
@@ -319,8 +379,12 @@ class SyncHandler {
     try {
       if (placeService.statusCode == 200) {
         handlePlaceService(placeService.body);
+        servicesFinished.putIfAbsent('placeService', () => true);
+        handleSyncCompletion();
       }
     } catch (e) {
+      servicesFinished.putIfAbsent('placeService', () => false);
+      handleSyncCompletion();
       AppUtils.showMessage('place error - ${e.toString()}');
     }
     
@@ -329,8 +393,12 @@ class SyncHandler {
     try {
       if (taskService.statusCode == 200) {
         handleTaskService(taskService.body);
+        servicesFinished.putIfAbsent('taskService', () => true);
+        handleSyncCompletion();
       }
     } catch (e) {
+      servicesFinished.putIfAbsent('taskService', () => false);
+      handleSyncCompletion();
       AppUtils.showMessage('task error - ${e.toString()}');
     }
 
@@ -339,8 +407,12 @@ class SyncHandler {
     try {
       if (activityService.statusCode == 200) {
         handleActivities(activityService.body);
+        servicesFinished.putIfAbsent('activityService', () => true);
+        handleSyncCompletion();
       }
     } catch (e) {
+      servicesFinished.putIfAbsent('activityService', () => false);
+      handleSyncCompletion();
       AppUtils.showMessage('activities error - ${e.toString()}');
     }
 
@@ -348,9 +420,13 @@ class SyncHandler {
     var userStatsService = await AppUtils.requestBuilder(AppUtils.baseUrl + APIServices.userStatsService, headers);
     try {
       if (userStatsService.statusCode == 200) {
-        handleUserStats(activityService.body);
+        handleUserStats(userStatsService.body);
+        servicesFinished.putIfAbsent('userStatsService', () => true);
+        handleSyncCompletion();
       }
     } catch (e) {
+      servicesFinished.putIfAbsent('userStatsService', () => false);
+      handleSyncCompletion();
       AppUtils.showMessage('user stats error - ${e.toString()}');
     }
 
@@ -359,8 +435,12 @@ class SyncHandler {
     try {
       if (storeTypeService.statusCode == 200) {
         handleStoreTypes(storeTypeService.body);
+        servicesFinished.putIfAbsent('storeTypeService', () => true);
+        handleSyncCompletion();
       }
     } catch (e) {
+      servicesFinished.putIfAbsent('storeTypeService', () => false);
+      handleSyncCompletion();
       AppUtils.showMessage('store types error - ${e.toString()}');
     }
 
@@ -369,12 +449,166 @@ class SyncHandler {
     try {
       if (dynamicUserActions.statusCode == 200) {
         handleDynamicUserActions(dynamicUserActions.body);
+        servicesFinished.putIfAbsent('dynamicUserActions', () => true);
+        handleSyncCompletion();
       }
     } catch (e) {
+      servicesFinished.putIfAbsent('dynamicUserActions', () => false);
+      handleSyncCompletion();
       AppUtils.showMessage('dynamicUserActions error - ${e.toString()}');
     }
 
+    //dynamic user action list service
+    var dynamicUserActionList = await AppUtils.requestBuilder(AppUtils.baseUrl + APIServices.dynamicActionListService, headers);
+    try {
+      if (dynamicUserActionList.statusCode == 200) {
+        handleDynamicUserActionList(dynamicUserActionList.body);
+        servicesFinished.putIfAbsent('dynamicUserActionList', () => true);
+        handleSyncCompletion();
+      }
+    } catch (e) {
+      servicesFinished.putIfAbsent('dynamicUserActionList', () => false);
+      handleSyncCompletion();
+      AppUtils.showMessage('dynamicUserActionList error - ${e.toString()}');
+    }
+
+    //reasons service
+    var reasonService = await AppUtils.requestBuilder(AppUtils.baseUrl + APIServices.getReasonsService(null), headers);
+    try {
+      if (reasonService.statusCode == 200) {
+        handleReasonsData(reasonService.body);
+        servicesFinished.putIfAbsent('reasonService', () => true);
+        handleSyncCompletion();
+      }
+    } catch (e) {
+      servicesFinished.putIfAbsent('reasonService', () => false);
+      handleSyncCompletion();
+      AppUtils.showMessage('reasons service error - ${e.toString()}');
+    }
+
+    //stores service
+    var storesService = await AppUtils.requestBuilder(AppUtils.baseUrl + APIServices.getStoreService(AppUtils.getSalesman(prefs)), headers);
+    try {
+      if (storesService.statusCode == 200) {
+        handleStoresData(storesService.body);
+        servicesFinished.putIfAbsent('storesService', () => true);
+        handleSyncCompletion();
+      }
+    } catch (e) {
+      servicesFinished.putIfAbsent('storesService', () => false);
+      handleSyncCompletion();
+      AppUtils.showMessage('stores error - ${e.toString()}');
+    }
+
   }
+
+  void handleStoresData(String? body){
+    if(body!=null && body.isNotEmpty){
+      StoreResponse storeResponse = StoreResponse.fromJson(jsonDecode(body));
+      if(storeResponse.data != null && storeResponse.data!.isNotEmpty){
+        saveLastStoreUpdate(storeResponse.lastUpdate);
+        insertStoresData(storeResponse.data);
+      }
+    }
+  }
+
+  void insertStoresData(List<StoreData>? stores){
+    instance.deleteAllData(instance.storeDataDetail);
+    instance.deleteAllData(instance.storeBeatMappingDataDetail);
+    instance.deleteAllData(instance.storeColorDataDetail);
+    instance.deleteAllData(instance.storePriceMappingDataDetail);
+
+    List<int> pricingIds = [];
+
+    for(StoreData store in stores!){
+
+      StoresDataDetail detail = StoresDataDetail(store.outletId, store.storeId, store.storeName, store.storeLatitude, store.storeLongitude, jsonEncode(store.beats?.map((e) => e.toJson()).toList()), jsonEncode(store.distributorRelation?.map((e) => e.toJson()).toList()), store.tenantId, store.name, store.ownerName, store.managerName, store.contactNo, store.alternateNo, store.division, store.outletLatitude, store.outletLongitude, store.outletAccuracy, store.storeStatus, store.description, store.surveyStatus, store.colorStatus, store.otpSent, store.otpVerified, store.otpSentAlternate, store.otpVerifiedAlternate, store.sms, store.tele, store.email, store.createdAt, store.updatedAt, store.source!=null?store.source.toString():'', store.companyOutletCode!=null?store.companyOutletCode.toString():'', jsonEncode(store.metaData), store.taxType!=null?store.taxType.toString():'', store.taxId!=null?store.taxId.toString():'', store.outletType, store.channel, store.territory, store.beat, store.createdBy, store.updatedBy, '', AppUtils.getSalesman(prefs), jsonEncode(store.schemes?.map((e) => e.toJson()).toList()), store.metaData!=null?store.metaData!.gstn:'', store.metaData!=null?store.metaData!.license:'', store.metaData!=null?store.metaData!.address:'', store.metaData!=null?store.metaData!.remarks:'');
+      instance.insert(instance.storeDataDetail, detail.toJson());
+
+      //store beat mapping
+      if(store.beats!=null && store.beats!.isNotEmpty){
+        for(StoreBeat beat in store.beats!){
+          StoreBeatMappingDataDetail beatMappingDataDetail  = StoreBeatMappingDataDetail(store.storeId, beat.id, beat.name, AppUtils.getSalesman(prefs));
+          instance.insert(instance.storeBeatMappingDataDetail, beatMappingDataDetail.toJson());
+        }
+      }
+
+      //store color mapping
+      if(store.colours!=null && store.colours!.isNotEmpty){
+        for(Colours color in store.colours!){
+          StoreColorDataDetail detail = StoreColorDataDetail(store.storeId, color.colour, color.beat, color.salesTerritory, color.visitDate, color.bill, color.noBill);
+          instance.insert(instance.storeColorDataDetail, detail.toJson());
+        }
+      }
+
+      //store price mapping
+      if(store.pricings!=null && store.pricings!.isNotEmpty){
+        for(Pricing pricing in store.pricings!){
+          pricingIds.add(pricing.pricingList!);
+          StorePriceMappingDataDetail detail = StorePriceMappingDataDetail(store.storeId, pricing.scope, pricing.pricingList, pricing.status, AppUtils.getSalesman(prefs));
+          instance.insert(instance.storePriceMappingDataDetail, detail.toJson());
+        }
+      }
+    }
+
+    fetchPricingList(pricingIds);
+
+  }
+
+  void fetchPricingList(List<int> pricingIds) async{
+    var pricingService = await AppUtils.requestBuilder(AppUtils.baseUrl + APIServices.getPricingListService(true,true,pricingIds), headers);
+    try {
+      if (pricingService.statusCode == 200) {
+        handlePricingData(pricingService.body);
+      }
+    } catch (e) {
+      AppUtils.showMessage('pricingService error - ${e.toString()}');
+    }
+  }
+
+  void handlePricingData(String? body){
+    if(body!=null && body.isNotEmpty){
+      List<dynamic> parsedListJson = jsonDecode(body);
+      List<PricingResponse> pricingList = List<PricingResponse>.from(parsedListJson.map<PricingResponse>((dynamic i) => PricingResponse.fromJson(i)));
+      if(pricingList.isNotEmpty){
+        instance.deleteAllData(instance.pricingDataDetail);
+        for(PricingResponse pricing in pricingList){
+          if(pricing.pricings!=null && pricing.pricings!.isNotEmpty){
+            for(ProductPricingObj ppObj in pricing.pricings!){
+              PricingDataDetail detail = PricingDataDetail(pricing.id, pricing.name, pricing.code, pricing.description, pricing.createdAt, pricing.updatedAt, pricing.status, ppObj.product!.id, ppObj.mrp, ppObj.ptr, ppObj.pts, ppObj.nrv, ppObj.isFeatureProduct, ppObj.status, AppUtils.getSalesman(prefs));
+              instance.insert(instance.pricingDataDetail, detail.toJson());
+            }
+          }
+        }
+      }
+    }
+  }
+
+  void saveLastStoreUpdate(String? lastUpdate){
+    if(lastUpdate!=null && lastUpdate.isNotEmpty){
+      prefs.setString('last_store_update', lastUpdate);
+    }
+  }
+
+  void handleReasonsData(String? body){
+    if(body!=null && body.isNotEmpty){
+      ReasonsResponse reasonsResponse = ReasonsResponse.fromJson(jsonDecode(body));
+      if(reasonsResponse.results!=null && reasonsResponse.results!.isNotEmpty){
+        instance.deleteAllData(instance.reasonsDataDetail);
+        for(Reasons reason in reasonsResponse.results!){
+          ReasonDataDetails detail = ReasonDataDetails(reason.id, reason.tenantId, reason.value, reason.groupName, reason.label, reason.status, reason.createdAt, reason.updatedAt);
+          instance.insert(instance.reasonsDataDetail, detail.toJson());
+        }
+      }
+    }
+  }
+
+  void handleDynamicUserActionList(String? body){
+    if(body!=null && body.isNotEmpty){
+      AppUtils.writeResponseToDisk(body,AppUtils.webFiles,'action_list','html');
+    }
+  }
+
 
   void handleDynamicUserActions(String? body){
     if(body!=null && body.isNotEmpty){
@@ -483,11 +717,44 @@ class SyncHandler {
 
 
 
-  void handleUserDataResponse(String body) {
+  void handleUserDataResponse(String? body) {
     if(body!=null && body.isNotEmpty) {
       prefs.setString("user_data", body);
       sendBroadcastToDashboard(AppStrings.key_set_places);
     }
+  }
+
+  void handleSyncCompletion(){
+    var calledLength = servicesToBeCalled.length;
+    var finishedLength = servicesFinished.length;
+    var percentage = (finishedLength*100)/calledLength;
+    FBroadcast.instance().broadcast(AppStrings.key_sync_progress,value: percentage);
+    bool success = true;
+    if(calledLength==finishedLength){
+      try{
+        serviceNames.forEach((element) {
+          if(servicesFinished[element]!=null && !servicesFinished[element]!){
+            success = false;
+          }
+        });
+      }catch(e){
+        print('error - ${e.toString()}');
+      }
+
+      if(success){
+        sendBroadcastToDashboard(AppStrings.key_success);
+      }else{
+        sendBroadcastToDashboard(AppStrings.key_failure);
+      }
+
+      servicesToBeCalled.clear();
+      servicesFinished.clear();
+
+      AppUtils.isSyncGoingOn = false;
+
+    }
+
+
 
   }
 

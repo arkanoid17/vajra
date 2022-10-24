@@ -7,7 +7,7 @@ class FormActionsDataDetailsFields{
   static const String createdAt = 'createdAt';
   static const String updatedAt = 'updatedAt';
   static const String actor = 'actor';
-  static const String group = 'group';
+  static const String group = '_group';
   static const String process = 'process';
   static const String category = 'category';
   static const String formContent = 'formContent';

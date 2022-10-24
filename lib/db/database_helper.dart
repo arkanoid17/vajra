@@ -9,9 +9,15 @@ import 'package:vajra/db/channel_data_detail/channel_data_detail.dart';
 import 'package:vajra/db/form_actions_data_detail/form_action_data_details.dart';
 import 'package:vajra/db/pending_task_data_detail/pending_task_data_detail.dart';
 import 'package:vajra/db/places_data_detail/places_data_detail.dart';
+import 'package:vajra/db/pricing_data_detail/pricing_data_detail.dart';
 import 'package:vajra/db/product_data_detail/product_data_detail.dart';
+import 'package:vajra/db/reasons_data_detail/reasons_data_detail.dart';
 import 'package:vajra/db/schemes_data_detail/schemes_data_detail.dart';
+import 'package:vajra/db/store_beat_mapping_data_detail/store_beat_mapping_data_detail.dart';
+import 'package:vajra/db/store_color_data_detail/store_color_data_detail.dart';
+import 'package:vajra/db/store_price_mapping_data_detail/store_price_mapping_data_detail.dart';
 import 'package:vajra/db/store_types_data_detail/store_types_data_detail.dart';
+import 'package:vajra/db/stores_data_detail/stores_data_detail.dart';
 import 'package:vajra/db/user_hierarchy_data_detail/user_hierarchy_data_detail.dart';
 import 'package:vajra/db/user_stats_data_detail/user_stats_data_detail.dart';
 import 'package:vajra/utils/app_utils.dart';
@@ -34,6 +40,12 @@ class DatabaseHelper {
   final String userStatsDataDetail = 'user_stats_data_detail';
   final String storeTypesDataDetail = 'store_types_data_detail';
   final String formActionsDataDetail = 'form_actions_data_detail';
+  final String reasonsDataDetail = 'reasons_data_detail';
+  final String storeDataDetail = 'store_data_detail';
+  final String storeBeatMappingDataDetail = 'store_beat_mapping_data_detail';
+  final String storeColorDataDetail = 'store_color_data_detail';
+  final String storePriceMappingDataDetail = 'store_price_mapping_data_detail';
+  final String pricingDataDetail = 'price_data_detail';
 
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
 
@@ -43,6 +55,7 @@ class DatabaseHelper {
 
   final String primaryKeyAutoIncrement = 'INTEGER PRIMARY KEY AUTOINCREMENT';
   final String primaryKey = 'INTEGER PRIMARY KEY';
+  final String primaryKeyText = 'TEXT PRIMARY KEY';
   final String integer = 'INTEGER';
   final String real = 'REAL';
   final String text = 'TEXT';
@@ -260,6 +273,128 @@ class DatabaseHelper {
         '${FormActionsDataDetailsFields.permissionId} $integer'
         ')'
     );
+
+    await db.execute('CREATE TABLE $reasonsDataDetail'
+        '('
+        '${ReasonDataDetailsFields.id} $primaryKey,'
+        '${ReasonDataDetailsFields.tenantId} $text,'
+        '${ReasonDataDetailsFields.value} $text,'
+        '${ReasonDataDetailsFields.groupName} $text,'
+        '${ReasonDataDetailsFields.label} $text,'
+        '${ReasonDataDetailsFields.status} $boolean,'
+        '${ReasonDataDetailsFields.createdAt} $text,'
+        '${ReasonDataDetailsFields.updatedAt} $text'
+        ')'
+    );
+
+    await db.execute('CREATE TABLE $storeDataDetail'
+        '('
+        '${StoresDataDetailFields.outletId} $primaryKeyText,'
+        '${StoresDataDetailFields.storeId} $text,'
+        '${StoresDataDetailFields.storeName} $text,'
+        '${StoresDataDetailFields.storeLatitude} $text,'
+        '${StoresDataDetailFields.storeLongitude} $text,'
+        '${StoresDataDetailFields.beats} $text,'
+        '${StoresDataDetailFields.distributorRelation} $text,'
+        '${StoresDataDetailFields.tenantId} $text,'
+        '${StoresDataDetailFields.name} $text,'
+        '${StoresDataDetailFields.ownerName} $text,'
+        '${StoresDataDetailFields.managerName} $text,'
+        '${StoresDataDetailFields.contactNo} $text,'
+        '${StoresDataDetailFields.alternateNo} $text,'
+        '${StoresDataDetailFields.division} $text,'
+        '${StoresDataDetailFields.outletLatitude} $text,'
+        '${StoresDataDetailFields.outletLongitude} $text,'
+        '${StoresDataDetailFields.outletAccuracy} $text,'
+        '${StoresDataDetailFields.storeStatus} $boolean,'
+        '${StoresDataDetailFields.description} $text,'
+        '${StoresDataDetailFields.surveyStatus} $boolean,'
+        '${StoresDataDetailFields.colorStatus} $integer,'
+        '${StoresDataDetailFields.otpSent} $boolean,'
+        '${StoresDataDetailFields.otpVerified} $boolean,'
+        '${StoresDataDetailFields.otpSentAlternate} $boolean,'
+        '${StoresDataDetailFields.otpVerifiedAlternate} $boolean,'
+        '${StoresDataDetailFields.sms} $boolean,'
+        '${StoresDataDetailFields.tele} $boolean,'
+        '${StoresDataDetailFields.email} $boolean,'
+        '${StoresDataDetailFields.createdAt} $text,'
+        '${StoresDataDetailFields.updatedAt} $text,'
+        '${StoresDataDetailFields.source} $text,'
+        '${StoresDataDetailFields.companyOutletCode} $text,'
+        '${StoresDataDetailFields.metaData} $text,'
+        '${StoresDataDetailFields.taxType} $text,'
+        '${StoresDataDetailFields.taxId} $text,'
+        '${StoresDataDetailFields.outletType} $integer,'
+        '${StoresDataDetailFields.channel} $integer,'
+        '${StoresDataDetailFields.territory} $integer,'
+        '${StoresDataDetailFields.beat} $integer,'
+        '${StoresDataDetailFields.createdBy} $integer,'
+        '${StoresDataDetailFields.updatedBy} $integer,'
+        '${StoresDataDetailFields.distance} $text,'
+        '${StoresDataDetailFields.salesmanId} $integer,'
+        '${StoresDataDetailFields.schemes} $text,'
+        '${StoresDataDetailFields.gstNumber} $text,'
+        '${StoresDataDetailFields.licenceNumber} $text,'
+        '${StoresDataDetailFields.address} $text,'
+        '${StoresDataDetailFields.remarks} $text'
+        ')'
+    );
+
+    await db.execute('CREATE TABLE $storeBeatMappingDataDetail'
+        '('
+        '${StoreBeatMappingDataDetailFields.id} $primaryKeyAutoIncrement,'
+        '${StoreBeatMappingDataDetailFields.storeId} $text,'
+        '${StoreBeatMappingDataDetailFields.beatId} $integer,'
+        '${StoreBeatMappingDataDetailFields.beatName} $text,'
+        '${StoreBeatMappingDataDetailFields.salesmanId} $integer'
+        ')'
+    );
+
+    await db.execute('CREATE TABLE $storeColorDataDetail'
+        '('
+        '${StoreColorDataDetailFields.id} $primaryKeyAutoIncrement,'
+        '${StoreColorDataDetailFields.storeId} $text,'
+        '${StoreColorDataDetailFields.colour} $integer,'
+        '${StoreColorDataDetailFields.beat} $integer,'
+        '${StoreColorDataDetailFields.salesTerritory} $integer,'
+        '${StoreColorDataDetailFields.visitDate} $text,'
+        '${StoreColorDataDetailFields.bill} $integer,'
+        '${StoreColorDataDetailFields.noBill} $integer'
+        ')'
+    );
+
+    await db.execute('CREATE TABLE $storePriceMappingDataDetail'
+        '('
+        '${StorePriceMappingDataDetailFields.id} $primaryKeyAutoIncrement,'
+        '${StorePriceMappingDataDetailFields.storeId} $text,'
+        '${StorePriceMappingDataDetailFields.scope} $text,'
+        '${StorePriceMappingDataDetailFields.pricingList} $integer,'
+        '${StorePriceMappingDataDetailFields.status} $boolean,'
+        '${StorePriceMappingDataDetailFields.userId} $integer'
+        ')'
+    );
+
+    await db.execute('CREATE TABLE $pricingDataDetail'
+        '('
+        '${PricingDataDetailFields.id} $primaryKeyAutoIncrement,'
+        '${PricingDataDetailFields.pricing_id} $integer,'
+        '${PricingDataDetailFields.name} $text,'
+        '${PricingDataDetailFields.code} $text,'
+        '${PricingDataDetailFields.description} $text,'
+        '${PricingDataDetailFields.created_at} $text,'
+        '${PricingDataDetailFields.updated_at} $text,'
+        '${PricingDataDetailFields.pricing_status} $boolean,'
+        '${PricingDataDetailFields.product} $integer,'
+        '${PricingDataDetailFields.mrp} $text,'
+        '${PricingDataDetailFields.ptr} $text,'
+        '${PricingDataDetailFields.pts} $text,'
+        '${PricingDataDetailFields.nrv} $text,'
+        '${PricingDataDetailFields.is_feature_product} $boolean,'
+        '${PricingDataDetailFields.product_status} $boolean,'
+        '${PricingDataDetailFields.userId} $integer'
+        ')'
+    );
+
   }
 
 
@@ -276,6 +411,12 @@ class DatabaseHelper {
   Future<int?> queryRowCount() async {
     Database db = await instance.database;
     return Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM $tableUserHierarchyDataDetail'));
+  }
+
+  Future<List<Map>> execQuery(String query) async{
+    Database db = await instance.database;
+    List<Map> result = await db.rawQuery(query);
+    return result;
   }
 
 

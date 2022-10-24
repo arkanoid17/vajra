@@ -32,4 +32,20 @@ class ColorConstants {
       900: Color(0x32ECE6F6),
     },
   );
+
+  static const MaterialColor color_ECE6F6_64 = MaterialColor(
+    0x32ECE6F6,
+    <int, Color>{
+      50: Color(0x64ECE6F6),
+      100: Color(0x64ECE6F6),
+      200: Color(0x64ECE6F6),
+      300: Color(0x64ECE6F6),
+      400: Color(0x64ECE6F6),
+      500: Color(0x64ECE6F6),
+      600: Color(0x64ECE6F6),
+      700: Color(0x64ECE6F6),
+      800: Color(0x64ECE6F6),
+      900: Color(0x64ECE6F6),
+    },
+  );
 }

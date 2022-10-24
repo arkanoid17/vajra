@@ -2,8 +2,10 @@ import 'package:fbroadcast/fbroadcast.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vajra/db/database_helper.dart';
+import 'package:vajra/db/user_stats_data_detail/user_stats_data_detail.dart';
 import 'package:vajra/dialogs/popup_menu.dart';
 import 'package:vajra/models/user_data/user_data.dart';
 import 'package:vajra/models/user_hierarchy/user_hierarchy_location.dart';
@@ -31,6 +33,9 @@ class _Dashboard extends State<Dashboard> {
 
   TextEditingController locationController = TextEditingController();
 
+  bool isSyncing = false;
+  var percentage = 0.0;
+
   var todayBills = 0;
   var thisMonthBills = 0;
   var pendingSyncBills = 0;
@@ -39,9 +44,11 @@ class _Dashboard extends State<Dashboard> {
   var thisMonthNoBills = 0;
   var pendingSyncNoBills = 0;
 
-  var todayNrv = 0;
-  var thisMonthNrv = 0;
-  var pendingSyncNrv = 0;
+  var todayNrv = 0.0;
+  var thisMonthNrv = 0.0;
+  var pendingSyncNrv = 0.0;
+
+  var chartDateText = AppStrings.today;
 
   void showLogoutDialog() {}
 
@@ -54,22 +61,21 @@ class _Dashboard extends State<Dashboard> {
           locations.addAll(user.locations!);
           locationNames.clear();
         });
-        for(UserHierarchyLocation location in user.locations!){
+        for (UserHierarchyLocation location in user.locations!) {
           setState(() {
             locationNames.add(location.name!);
           });
         }
 
-
         if (prefs!.containsKey('selected_place_id')) {
           int selectedPlaceId = prefs!.getInt('selected_place_id')!;
 
-          for(UserHierarchyLocation location in user.locations!){
-            if (location.id == selectedPlaceId)
-            {
+          for (UserHierarchyLocation location in user.locations!) {
+            if (location.id == selectedPlaceId) {
               setState(() {
                 locationValue = location.name;
-                locationController = TextEditingController(text: location.name!);
+                locationController =
+                    TextEditingController(text: location.name!);
               });
             }
           }
@@ -77,7 +83,8 @@ class _Dashboard extends State<Dashboard> {
           if (user.locations!.isNotEmpty) {
             setState(() {
               locationValue = user.locations![0].name!;
-              locationController = TextEditingController(text: user.locations![0].name!);
+              locationController =
+                  TextEditingController(text: user.locations![0].name!);
             });
           }
         }
@@ -85,11 +92,11 @@ class _Dashboard extends State<Dashboard> {
     }
   }
 
-  void onLocationChange(String name){
+  void onLocationChange(String name) {
     int x = -1;
-    for (String lName in locationNames){
+    for (String lName in locationNames) {
       ++x;
-      if(lName==name){
+      if (lName == name) {
         var id = locations[x].id!;
         prefs!.setInt('selected_place_id', id);
         setLocations();
@@ -100,15 +107,64 @@ class _Dashboard extends State<Dashboard> {
 
   void setRegisters(String key) {
     FBroadcast.instance().register(key, (value, callback) {
+      print(key);
       switch (key) {
         case AppStrings.key_start:
+          setState(() {
+            percentage = 0.0;
+          });
+          setSyncing(true);
           AppUtils.showMessage(AppStrings.syncStarted);
+          setState(() {
+            percentage = 0.0;
+          });
           break;
         case AppStrings.key_set_places:
           setLocations();
           break;
+        case AppStrings.key_success:
+          setSyncing(false);
+          AppUtils.showMessage(AppStrings.dataRetrievalSuccess);
+          break;
+        case AppStrings.key_failure:
+          setSyncing(false);
+          AppUtils.showMessage(AppStrings.dataRetrievalSuccess);
+          break;
+        case AppStrings.key_sync_progress:
+          print(value);
+          setState(() {
+            percentage = value;
+          });
+          break;
       }
     }, context: this);
+  }
+
+  void setSyncing(bool val) {
+    setState(() {
+      isSyncing = val;
+    });
+  }
+
+  void getUserStats() {
+    instance
+        .execQuery('SELECT * FROM ${instance.userStatsDataDetail}')
+        .then((value) => {
+              for (var element in value)
+                {
+                  setState(() {
+                    thisMonthNrv = element[UserStatsDataDetailFields.monthNrv];
+                    todayNrv = element[UserStatsDataDetailFields.todayNrv];
+                    thisMonthBills =
+                        element[UserStatsDataDetailFields.monthBilled];
+                    thisMonthNoBills =
+                        element[UserStatsDataDetailFields.monthUnbilled];
+                    todayBills = element[UserStatsDataDetailFields.todayBilled];
+                    todayNoBills =
+                        element[UserStatsDataDetailFields.todayUnbilled];
+                  })
+                }
+            });
   }
 
   @override
@@ -117,6 +173,9 @@ class _Dashboard extends State<Dashboard> {
 
     setRegisters(AppStrings.key_start);
     setRegisters(AppStrings.key_set_places);
+    setRegisters(AppStrings.key_sync_progress);
+    setRegisters(AppStrings.key_success);
+    setRegisters(AppStrings.key_failure);
 
     if (prefs == null) {
       AppUtils.getPrefs().then((value) => setState(() {
@@ -125,6 +184,8 @@ class _Dashboard extends State<Dashboard> {
             SyncHandler(context, value, instance).startSync();
           }));
     }
+
+    getUserStats();
 
     super.initState();
   }
@@ -150,6 +211,7 @@ class _Dashboard extends State<Dashboard> {
                       Padding(
                         padding: const EdgeInsets.only(left: 16.0, top: 32.0),
                         child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
                               onPressed: () =>
@@ -163,16 +225,45 @@ class _Dashboard extends State<Dashboard> {
                               width: 15,
                               height: 1,
                             ),
-                            locations.isNotEmpty?
-                            Container(
-                              padding: const EdgeInsets.only(left: 15,top: 5,right: 15,bottom: 5),
-                              child: PopupMenuDialog(names: locationNames,selected: locationValue!,onLocationChanged: onLocationChange,),
-                              decoration: const BoxDecoration(
-                                color: Color(0x32ECE6F6),
-                                borderRadius: BorderRadius.all(Radius.circular(25))
-                              ) ,
-                            ):
-                            Container(),
+                            locations.isNotEmpty
+                                ? Container(
+                                    padding: const EdgeInsets.only(
+                                        left: 15, top: 5, right: 15, bottom: 5),
+                                    child: PopupMenuDialog(
+                                      names: locationNames,
+                                      selected: locationValue!,
+                                      onLocationChanged: onLocationChange,
+                                    ),
+                                    decoration: const BoxDecoration(
+                                        color: ColorConstants.color_ECE6F6_20,
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(25))),
+                                  )
+                                : Container(),
+                            Flexible(
+                              fit: FlexFit.tight,
+                              child: const SizedBox(
+                                width: 15,
+                                height: 1,
+                              ),
+                            ),
+                            isSyncing
+                                ? CircularPercentIndicator(
+                                    radius: 18.0,
+                                    lineWidth: 3.0,
+                                    percent: (percentage/100),
+                                    center: Text(
+                                      '${percentage.toInt()}%',
+                                      style: const TextStyle(
+                                          color: Colors.white, fontSize: 10),
+                                    ),
+                                    progressColor: Colors.white,
+                                  )
+                                : Container(),
+                            const SizedBox(
+                              width: 15,
+                              height: 1,
+                            )
                           ],
                         ),
                       ),
@@ -242,42 +333,97 @@ class _Dashboard extends State<Dashboard> {
                                       margin: const EdgeInsets.only(left: 16),
                                       decoration: const BoxDecoration(
                                         image: DecorationImage(
-                                            image: AssetImage("assets/images/ic_bg_bill_stats.png"),
+                                            image: AssetImage(
+                                                "assets/images/ic_bg_bill_stats.png"),
                                             fit: BoxFit.cover),
-
                                       ),
                                       child: Padding(
                                         padding: const EdgeInsets.all(15),
                                         child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
                                             const Center(
-                                              child: Text(AppStrings.bills,style: TextStyle(color: Colors.white,fontSize: 18,fontWeight: FontWeight.w500),),
+                                              child: Text(
+                                                AppStrings.bills,
+                                                style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 18,
+                                                    fontWeight:
+                                                        FontWeight.w500),
+                                              ),
                                             ),
                                             Center(
-                                              child: Column(
-                                                children: [
-                                                  Text('$todayBills',style: TextStyle(color: Colors.white,fontSize: 24,fontWeight: FontWeight.w500),),
-                                                  Text(AppStrings.today,style: TextStyle(color: Colors.white,fontSize: 22,fontWeight: FontWeight.w500),),
-                                                ],
-                                              )
-                                            ),
+                                                child: Column(
+                                              children: [
+                                                Text(
+                                                  '$todayBills',
+                                                  style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 24,
+                                                      fontWeight:
+                                                          FontWeight.w500),
+                                                ),
+                                                Text(
+                                                  AppStrings.today,
+                                                  style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 22,
+                                                      fontWeight:
+                                                          FontWeight.w500),
+                                                ),
+                                              ],
+                                            )),
                                             Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.spaceEvenly,
                                               children: [
                                                 Center(
                                                   child: Column(
                                                     children: [
-                                                      Text('$thisMonthBills',style: TextStyle(color: Colors.white,fontSize: 18,fontWeight: FontWeight.w500),),
-                                                      const Text(AppStrings.thisMonth,style: TextStyle(color: Colors.white,fontSize: 18,fontWeight: FontWeight.w500),)
+                                                      Text(
+                                                        '$thisMonthBills',
+                                                        style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 18,
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .w500),
+                                                      ),
+                                                      const Text(
+                                                        AppStrings.thisMonth,
+                                                        style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 18,
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .w500),
+                                                      )
                                                     ],
                                                   ),
                                                 ),
                                                 Center(
                                                   child: Column(
                                                     children: [
-                                                      Text('$pendingSyncBills',style: TextStyle(color: Colors.white,fontSize: 18,fontWeight: FontWeight.w500),),
-                                                      const Text(AppStrings.pendingToSync,style: TextStyle(color: Colors.white,fontSize: 18,fontWeight: FontWeight.w500),)
+                                                      Text(
+                                                        '$pendingSyncBills',
+                                                        style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 18,
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .w500),
+                                                      ),
+                                                      const Text(
+                                                        AppStrings
+                                                            .pendingToSync,
+                                                        style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 18,
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .w500),
+                                                      )
                                                     ],
                                                   ),
                                                 )
@@ -287,48 +433,105 @@ class _Dashboard extends State<Dashboard> {
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(width: 10,),
+                                    const SizedBox(
+                                      width: 10,
+                                    ),
                                     Container(
                                       width: 192,
                                       height: 236,
                                       decoration: const BoxDecoration(
                                         image: DecorationImage(
-                                            image: AssetImage("assets/images/ic_bg_no_bill_stats.png"),
+                                            image: AssetImage(
+                                                "assets/images/ic_bg_no_bill_stats.png"),
                                             fit: BoxFit.cover),
-
                                       ),
                                       child: Padding(
                                         padding: const EdgeInsets.all(15),
                                         child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
                                             const Center(
-                                              child: Text(AppStrings.noBills,style: TextStyle(color: Colors.white,fontSize: 18,fontWeight: FontWeight.w500),),
+                                              child: Text(
+                                                AppStrings.noBills,
+                                                style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 18,
+                                                    fontWeight:
+                                                        FontWeight.w500),
+                                              ),
                                             ),
                                             Center(
                                                 child: Column(
-                                                  children: [
-                                                    Text('$todayNoBills',style: TextStyle(color: Colors.white,fontSize: 24,fontWeight: FontWeight.w500),),
-                                                    Text(AppStrings.today,style: TextStyle(color: Colors.white,fontSize: 22,fontWeight: FontWeight.w500),),
-                                                  ],
-                                                )
-                                            ),
+                                              children: [
+                                                Text(
+                                                  '$todayNoBills',
+                                                  style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 24,
+                                                      fontWeight:
+                                                          FontWeight.w500),
+                                                ),
+                                                Text(
+                                                  AppStrings.today,
+                                                  style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 22,
+                                                      fontWeight:
+                                                          FontWeight.w500),
+                                                ),
+                                              ],
+                                            )),
                                             Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.spaceEvenly,
                                               children: [
                                                 Center(
                                                   child: Column(
                                                     children: [
-                                                      Text('$thisMonthNoBills',style: TextStyle(color: Colors.white,fontSize: 18,fontWeight: FontWeight.w500),),
-                                                      const Text(AppStrings.thisMonth,style: TextStyle(color: Colors.white,fontSize: 18,fontWeight: FontWeight.w500),)
+                                                      Text(
+                                                        '$thisMonthNoBills',
+                                                        style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 18,
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .w500),
+                                                      ),
+                                                      const Text(
+                                                        AppStrings.thisMonth,
+                                                        style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 18,
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .w500),
+                                                      )
                                                     ],
                                                   ),
                                                 ),
                                                 Center(
                                                   child: Column(
                                                     children: [
-                                                      Text('$pendingSyncNoBills',style: TextStyle(color: Colors.white,fontSize: 18,fontWeight: FontWeight.w500),),
-                                                      const Text(AppStrings.pendingToSync,style: TextStyle(color: Colors.white,fontSize: 18,fontWeight: FontWeight.w500),)
+                                                      Text(
+                                                        '$pendingSyncNoBills',
+                                                        style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 18,
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .w500),
+                                                      ),
+                                                      const Text(
+                                                        AppStrings
+                                                            .pendingToSync,
+                                                        style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 18,
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .w500),
+                                                      )
                                                     ],
                                                   ),
                                                 )
@@ -338,49 +541,106 @@ class _Dashboard extends State<Dashboard> {
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(width: 10,),
+                                    const SizedBox(
+                                      width: 10,
+                                    ),
                                     Container(
                                       width: 192,
                                       height: 236,
                                       margin: const EdgeInsets.only(right: 16),
                                       decoration: const BoxDecoration(
                                         image: DecorationImage(
-                                            image: AssetImage("assets/images/ic_bg_nrv_stats.png"),
+                                            image: AssetImage(
+                                                "assets/images/ic_bg_nrv_stats.png"),
                                             fit: BoxFit.cover),
-
                                       ),
                                       child: Padding(
                                         padding: const EdgeInsets.all(15),
                                         child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
                                             const Center(
-                                              child: Text(AppStrings.nrv,style: TextStyle(color: Colors.white,fontSize: 18,fontWeight: FontWeight.w500),),
+                                              child: Text(
+                                                AppStrings.nrv,
+                                                style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 18,
+                                                    fontWeight:
+                                                        FontWeight.w500),
+                                              ),
                                             ),
                                             Center(
                                                 child: Column(
-                                                  children: [
-                                                    Text('$todayNrv',style: TextStyle(color: Colors.white,fontSize: 24,fontWeight: FontWeight.w500),),
-                                                    Text(AppStrings.today,style: TextStyle(color: Colors.white,fontSize: 22,fontWeight: FontWeight.w500),),
-                                                  ],
-                                                )
-                                            ),
+                                              children: [
+                                                Text(
+                                                  '$todayNrv',
+                                                  style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 24,
+                                                      fontWeight:
+                                                          FontWeight.w500),
+                                                ),
+                                                Text(
+                                                  AppStrings.today,
+                                                  style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 22,
+                                                      fontWeight:
+                                                          FontWeight.w500),
+                                                ),
+                                              ],
+                                            )),
                                             Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.spaceEvenly,
                                               children: [
                                                 Center(
                                                   child: Column(
                                                     children: [
-                                                      Text('$thisMonthNrv',style: TextStyle(color: Colors.white,fontSize: 18,fontWeight: FontWeight.w500),),
-                                                      const Text(AppStrings.thisMonth,style: TextStyle(color: Colors.white,fontSize: 18,fontWeight: FontWeight.w500),)
+                                                      Text(
+                                                        '$thisMonthNrv',
+                                                        style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 18,
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .w500),
+                                                      ),
+                                                      const Text(
+                                                        AppStrings.thisMonth,
+                                                        style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 18,
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .w500),
+                                                      )
                                                     ],
                                                   ),
                                                 ),
                                                 Center(
                                                   child: Column(
                                                     children: [
-                                                      Text('$pendingSyncNrv',style: TextStyle(color: Colors.white,fontSize: 18,fontWeight: FontWeight.w500),),
-                                                      const Text(AppStrings.pendingToSync,style: TextStyle(color: Colors.white,fontSize: 18,fontWeight: FontWeight.w500),)
+                                                      Text(
+                                                        '$pendingSyncNrv',
+                                                        style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 18,
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .w500),
+                                                      ),
+                                                      const Text(
+                                                        AppStrings
+                                                            .pendingToSync,
+                                                        style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 18,
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .w500),
+                                                      )
                                                     ],
                                                   ),
                                                 )
@@ -391,6 +651,58 @@ class _Dashboard extends State<Dashboard> {
                                       ),
                                     ),
                                   ],
+                                ),
+                              ),
+                              const SizedBox(
+                                width: 1,
+                                height: 60,
+                              ),
+                              Container(
+                                margin: const EdgeInsets.only(left: 16.0,right: 16.0),
+                                child: Card(
+                                  elevation: 2,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(10),
+                                    child: Column(
+                                      children: [
+                                        Row(
+                                          children: [
+                                            const Text(AppStrings.performance,style: TextStyle(color: Colors.black,fontSize: 20,fontWeight: FontWeight.bold),),
+                                            const SizedBox(
+                                              width: 15,
+                                              height: 1,
+                                            ),
+                                            Flexible(
+                                              fit: FlexFit.tight,
+                                              child: Container(
+                                                decoration: const BoxDecoration(
+                                                    color: ColorConstants.color_ECE6F6_64,
+                                                    borderRadius: BorderRadius.all(
+                                                        Radius.circular(25))),
+                                                child: Padding(
+                                                  padding: const EdgeInsets.only(left: 15,top: 10,right: 15,bottom: 10),
+                                                  child: Row(
+                                                    children: [
+                                                      Image.asset('assets/images/ic_calendar_primary.png'),
+                                                      const SizedBox(
+                                                        width: 10,
+                                                        height: 1,
+                                                      ),
+                                                      Flexible(
+                                                        fit: FlexFit.tight,
+                                                        child:Text('$chartDateText',style: TextStyle(color: ColorConstants.colorPrimary,fontSize: 14,fontWeight: FontWeight.w500),)
+                                                      ),
+                                                      const Icon(Icons.arrow_drop_down,color: ColorConstants.colorPrimary,),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      ],
+                                    ),
+                                  )
                                 ),
                               )
                             ],

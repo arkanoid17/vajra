@@ -57,5 +57,10 @@ class AppStrings {
   static const String today = 'Today';
   static const String thisMonth = 'In this\nMonth';
   static const String pendingToSync = 'Pending\nto Sync';
+  static const dataRetrievalSuccess = 'Data retrieval success!';
+  static const dataRetrievalFail = 'Failed to retrieve data!';
+  static const performance = 'Performance';
+  static const String currentWeek = 'Current Week';
+  static const String currentMonth = 'Current Month';
 
 }

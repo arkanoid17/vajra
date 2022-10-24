@@ -13,7 +13,7 @@ class PendingTaskDataDetailFields{
   static const String checksum = 'checksum';
   static const String data = 'data';
   static const String actor = 'actor';
-  static const String group = 'group';
+  static const String group = '_group';
   static const String step = 'step';
   static const String storeId = 'storeId';
 }
