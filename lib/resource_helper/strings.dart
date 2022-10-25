@@ -62,5 +62,13 @@ class AppStrings {
   static const performance = 'Performance';
   static const String currentWeek = 'Current Week';
   static const String currentMonth = 'Current Month';
+  static const String yesterday = 'Yesterday';
+  static const String lastWeek = 'Last Week';
+  static const String lastMonth = 'Last Month';
+  static const String past3Months = 'Past 3 Months';
+  static const String currentFy = 'Current FY';
+  static const String previousFy = 'Previous FY';
+  static const String selectDateRange = 'Select Date Range';
+  static const String to = 'to';
 
 }

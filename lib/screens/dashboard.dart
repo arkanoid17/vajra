@@ -2,10 +2,12 @@ import 'package:fbroadcast/fbroadcast.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:intl/intl.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vajra/db/database_helper.dart';
 import 'package:vajra/db/user_stats_data_detail/user_stats_data_detail.dart';
+import 'package:vajra/dialogs/date_dropdown.dart';
 import 'package:vajra/dialogs/popup_menu.dart';
 import 'package:vajra/models/user_data/user_data.dart';
 import 'package:vajra/models/user_hierarchy/user_hierarchy_location.dart';
@@ -49,6 +51,8 @@ class _Dashboard extends State<Dashboard> {
   var pendingSyncNrv = 0.0;
 
   var chartDateText = AppStrings.today;
+  var fromDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
+  var toDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
   void showLogoutDialog() {}
 
@@ -107,14 +111,11 @@ class _Dashboard extends State<Dashboard> {
 
   void setRegisters(String key) {
     FBroadcast.instance().register(key, (value, callback) {
-      print(key);
       switch (key) {
         case AppStrings.key_start:
-          setState(() {
-            percentage = 0.0;
-          });
-          setSyncing(true);
+
           AppUtils.showMessage(AppStrings.syncStarted);
+          setSyncing(true);
           setState(() {
             percentage = 0.0;
           });
@@ -131,7 +132,6 @@ class _Dashboard extends State<Dashboard> {
           AppUtils.showMessage(AppStrings.dataRetrievalSuccess);
           break;
         case AppStrings.key_sync_progress:
-          print(value);
           setState(() {
             percentage = value;
           });
@@ -165,6 +165,14 @@ class _Dashboard extends State<Dashboard> {
                   })
                 }
             });
+  }
+
+  void onDateSelected(String item,String fromDate, String toDate) {
+    setState(() {
+      chartDateText = item;
+      this.fromDate = fromDate;
+      this.toDate = toDate;
+    });
   }
 
   @override
@@ -251,7 +259,7 @@ class _Dashboard extends State<Dashboard> {
                                 ? CircularPercentIndicator(
                                     radius: 18.0,
                                     lineWidth: 3.0,
-                                    percent: (percentage/100),
+                                    percent: (percentage / 100),
                                     center: Text(
                                       '${percentage.toInt()}%',
                                       style: const TextStyle(
@@ -624,7 +632,7 @@ class _Dashboard extends State<Dashboard> {
                                                     children: [
                                                       Text(
                                                         '$pendingSyncNrv',
-                                                        style: TextStyle(
+                                                        style: const TextStyle(
                                                             color: Colors.white,
                                                             fontSize: 18,
                                                             fontWeight:
@@ -658,52 +666,99 @@ class _Dashboard extends State<Dashboard> {
                                 height: 60,
                               ),
                               Container(
-                                margin: const EdgeInsets.only(left: 16.0,right: 16.0),
+                                margin: const EdgeInsets.only(
+                                    left: 16.0, right: 16.0),
                                 child: Card(
-                                  elevation: 2,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(10),
-                                    child: Column(
-                                      children: [
-                                        Row(
-                                          children: [
-                                            const Text(AppStrings.performance,style: TextStyle(color: Colors.black,fontSize: 20,fontWeight: FontWeight.bold),),
-                                            const SizedBox(
-                                              width: 15,
-                                              height: 1,
-                                            ),
-                                            Flexible(
-                                              fit: FlexFit.tight,
-                                              child: Container(
-                                                decoration: const BoxDecoration(
-                                                    color: ColorConstants.color_ECE6F6_64,
-                                                    borderRadius: BorderRadius.all(
-                                                        Radius.circular(25))),
-                                                child: Padding(
-                                                  padding: const EdgeInsets.only(left: 15,top: 10,right: 15,bottom: 10),
-                                                  child: Row(
-                                                    children: [
-                                                      Image.asset('assets/images/ic_calendar_primary.png'),
-                                                      const SizedBox(
-                                                        width: 10,
-                                                        height: 1,
+                                    elevation: 2,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(10),
+                                      child: Column(
+                                        children: [
+                                          Row(
+                                            children: [
+                                              const Text(
+                                                AppStrings.performance,
+                                                style: TextStyle(
+                                                    color: Colors.black,
+                                                    fontSize: 20,
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
+                                              const SizedBox(
+                                                width: 15,
+                                                height: 1,
+                                              ),
+                                              Flexible(
+                                                fit: FlexFit.tight,
+                                                child: GestureDetector(
+                                                  onTap: () => {
+                                                    AppUtils.showBottomDialog(
+                                                        context,
+                                                        true,
+                                                        true,
+                                                        Colors.white,
+                                                        DateDropDown(
+                                                          selected:
+                                                              chartDateText,
+                                                          prefs: prefs!,
+                                                          onDateSelected:
+                                                              onDateSelected,
+                                                        ))
+                                                  },
+                                                  child: Container(
+                                                    decoration: const BoxDecoration(
+                                                        color: ColorConstants
+                                                            .color_ECE6F6_64,
+                                                        borderRadius:
+                                                            BorderRadius.all(
+                                                                Radius.circular(
+                                                                    25))),
+                                                    child: Padding(
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                              left: 15,
+                                                              top: 10,
+                                                              right: 15,
+                                                              bottom: 10),
+                                                      child: Row(
+                                                        children: [
+                                                          Image.asset(
+                                                              'assets/images/ic_calendar_primary.png'),
+                                                          const SizedBox(
+                                                            width: 10,
+                                                            height: 1,
+                                                          ),
+                                                          Flexible(
+                                                              fit:
+                                                                  FlexFit.tight,
+                                                              child: Text(
+                                                                '$chartDateText',
+                                                                style: TextStyle(
+                                                                    color: ColorConstants
+                                                                        .colorPrimary,
+                                                                    fontSize:
+                                                                        14,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w500),
+                                                              )),
+                                                          const Icon(
+                                                            Icons
+                                                                .arrow_drop_down,
+                                                            color: ColorConstants
+                                                                .colorPrimary,
+                                                          ),
+                                                        ],
                                                       ),
-                                                      Flexible(
-                                                        fit: FlexFit.tight,
-                                                        child:Text('$chartDateText',style: TextStyle(color: ColorConstants.colorPrimary,fontSize: 14,fontWeight: FontWeight.w500),)
-                                                      ),
-                                                      const Icon(Icons.arrow_drop_down,color: ColorConstants.colorPrimary,),
-                                                    ],
+                                                    ),
                                                   ),
                                                 ),
                                               ),
-                                            ),
-                                          ],
-                                        )
-                                      ],
-                                    ),
-                                  )
-                                ),
+                                            ],
+                                          )
+                                        ],
+                                      ),
+                                    )),
                               )
                             ],
                           ),

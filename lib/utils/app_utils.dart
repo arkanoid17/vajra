@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:http/http.dart';
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -125,4 +126,12 @@ class AppUtils {
     return 0;
   }
 
+  static String getFyDate(SharedPreferences prefs){
+    UserData? user = getUserData(prefs);
+    if(user!=null && user.settings!=null && user.settings!.fyDate!=null && user.settings!.fyDate!.isNotEmpty){
+      DateFormat format = DateFormat('yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'');
+      return DateFormat('yyyy-MM-dd').format(format.parse(user.settings!.fyDate!).toUtc());
+    }
+    return '';
+  }
 }
