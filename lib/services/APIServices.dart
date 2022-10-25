@@ -16,23 +16,53 @@ class APIServices {
   static const String reasonService = 'extra-data/';
   static const String storeService = 'salesman/territory_stores/';
   static const String pricingListService = 'portal/api/pricing-list/';
+  static const String salesHistoryService = 'portal/api/sales/history/';
+
+  static String getSalesHistoryService(String? series,String? fromDate,String? toDate,String? salesman,String? includeFields1,String? includeFields2,String? includeFields3){
+    String path = salesHistoryService;
+    String queries = '';
+    if(series!=null){
+      queries = '$queries${getSeperator(queries)}series=$series';
+    }
+    if(fromDate!=null){
+      queries = '$queries${getSeperator(queries)}from_date=$fromDate';
+    }
+    if(toDate!=null){
+      queries = '$queries${getSeperator(queries)}to_date=$toDate';
+    }
+    if(salesman!=null){
+      queries = '$queries${getSeperator(queries)}salesman=$salesman';
+    }
+    if(includeFields1!=null){
+      queries = '$queries${getSeperator(queries)}include_fields=$includeFields1';
+    }
+    if(includeFields2!=null){
+      queries = '$queries${getSeperator(queries)}include_fields=$includeFields2';
+    }
+    if(includeFields3!=null){
+      queries = '$queries${getSeperator(queries)}include_fields=$includeFields3';
+    }
+    
+
+    print('queries - $queries');
+
+    return '$path$queries';
+  }
 
   static String getPricingListService(bool? includeProducts, bool? noPage, List<int>? pricingIds){
     String path = pricingListService;
     String queries = '';
     if(includeProducts!=null){
-      queries = '$queries&include_products=$includeProducts';
+      queries = '$queries${getSeperator(queries)}include_products=$includeProducts';
     }
     if(noPage!=null){
-      queries = '$queries&no_page=$noPage';
+      queries = '$queries${getSeperator(queries)}no_page=$noPage';
     }
     if(pricingIds!=null){
-      queries = '$queries&pricing=$pricingIds';
+      queries = '$queries${getSeperator(queries)}pricing=$pricingIds';
     }
 
-    if(queries.isNotEmpty){
-      queries.replaceFirst('&', '?');
-    }
+    
 
     return '$path$queries';
   }
@@ -41,11 +71,9 @@ class APIServices {
     String path = storeService;
     String queries = '';
     if(salesmanId != null){
-      queries = '$queries&salesman_id=$salesmanId';
+      queries = '$queries${getSeperator(queries)}salesman_id=$salesmanId';
     }
-    if(queries.isNotEmpty){
-      queries.replaceFirst('&', '?');
-    }
+    
 
     return '$path$queries';
   }
@@ -54,11 +82,9 @@ class APIServices {
     String path = reasonService;
     String queries = '';
     if(groupName != null){
-      queries = '$queries&group_name=$groupName';
+      queries = '$queries${getSeperator(queries)}group_name=$groupName';
     }
-    if(queries.isNotEmpty){
-      queries.replaceFirst('&', '?');
-    }
+    
 
     return '$path$queries';
   }
@@ -67,20 +93,18 @@ class APIServices {
     String path = tasksServices;
     String queries = '';
     if(status != null){
-      queries = '$queries&status=$status';
+      queries = '$queries${getSeperator(queries)}status=$status';
     }
     if(page != null){
-      queries = '$queries&page=$page';
+      queries = '$queries${getSeperator(queries)}page=$page';
     }
     if(storeId != null){
-      queries = '$queries&storeId=$storeId';
+      queries = '$queries${getSeperator(queries)}storeId=$storeId';
     }
     if(fetchActivity != null){
-      queries = '$queries&fetch_activity=$fetchActivity';
+      queries = '$queries${getSeperator(queries)}fetch_activity=$fetchActivity';
     }
-    if(queries.isNotEmpty){
-      queries.replaceFirst('&', '?');
-    }
+    
 
     return '$path$queries';
   }
@@ -89,23 +113,25 @@ class APIServices {
     String path = channelServices;
     String queries = '';
     if(pageSize != null){
-      queries = '$queries&page_size=$pageSize';
+      queries = '$queries${getSeperator(queries)}page_size=$pageSize';
     }
     if(page != null){
-      queries = '$queries&page=$page';
+      queries = '$queries${getSeperator(queries)}page=$page';
     }
     if(search != null){
-      queries = '$queries&search=$search';
+      queries = '$queries${getSeperator(queries)}search=$search';
     }
     if(orgNode != null){
-      queries = '$queries&org_node=$orgNode';
+      queries = '$queries${getSeperator(queries)}org_node=$orgNode';
     }
 
-    if(queries.isNotEmpty){
-      queries.replaceFirst('&', '?');
-    }
+    
 
     return '$path$queries';
+  }
+
+  static String getSeperator(String queries){
+    return queries.isEmpty?'?':'&';
   }
 
 }

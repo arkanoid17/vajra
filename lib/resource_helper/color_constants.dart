@@ -48,4 +48,20 @@ class ColorConstants {
       900: Color(0x64ECE6F6),
     },
   );
+
+  static const MaterialColor color_FF95CA4 = MaterialColor(
+    0xFFFF95CA,
+    <int, Color>{
+      50: Color(0xFFFF95CA),
+      100: Color(0xFFFF95CA),
+      200: Color(0xFFFF95CA),
+      300: Color(0xFFFF95CA),
+      400: Color(0xFFFF95CA),
+      500: Color(0x32FF95CA),
+      600: Color(0xFFFF95CA),
+      700: Color(0xFFFF95CA),
+      800: Color(0xFFFF95CA),
+      900: Color(0xFFFF95CA),
+    },
+  );
 }

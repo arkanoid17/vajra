@@ -70,5 +70,7 @@ class AppStrings {
   static const String previousFy = 'Previous FY';
   static const String selectDateRange = 'Select Date Range';
   static const String to = 'to';
+  static const String billed = 'Billed';
+  static const String ptr = 'PTR';
 
 }

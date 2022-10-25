@@ -253,7 +253,6 @@ class SyncHandler {
             //clear products, discounts
             instance.deleteAllData(instance.productDataDetail);
             instance.deleteAllData(instance.schemesDataDetail);
-
           }
         }
         
@@ -743,6 +742,7 @@ class SyncHandler {
 
       if(success){
         sendBroadcastToDashboard(AppStrings.key_success);
+        sendBroadcastToDashboard(AppStrings.key_set_chart);
       }else{
         sendBroadcastToDashboard(AppStrings.key_failure);
       }

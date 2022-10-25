@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:fbroadcast/fbroadcast.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -5,14 +7,17 @@ import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vajra/components/bar_chart_component.dart';
 import 'package:vajra/db/database_helper.dart';
 import 'package:vajra/db/user_stats_data_detail/user_stats_data_detail.dart';
 import 'package:vajra/dialogs/date_dropdown.dart';
 import 'package:vajra/dialogs/popup_menu.dart';
+import 'package:vajra/models/sales_history_data/sales_history.dart';
 import 'package:vajra/models/user_data/user_data.dart';
 import 'package:vajra/models/user_hierarchy/user_hierarchy_location.dart';
 import 'package:vajra/resource_helper/color_constants.dart';
 import 'package:vajra/resource_helper/strings.dart';
+import 'package:vajra/services/APIServices.dart';
 import 'package:vajra/utils/app_utils.dart';
 import 'package:vajra/utils/sync_handler.dart';
 
@@ -53,6 +58,18 @@ class _Dashboard extends State<Dashboard> {
   var chartDateText = AppStrings.today;
   var fromDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
   var toDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+  var chartView = AppStrings.billed;
+
+  String series = 'daily';
+  String salesman = '';
+  String includeFields1 = "total_nrv";
+  String includeFields2 = "total_ptr";
+  String includeFields3 = "orders";
+
+  Map<String, String> headers = {};
+
+  List<SalesHistoryData> listSalesHistory = [];
 
   void showLogoutDialog() {}
 
@@ -113,7 +130,6 @@ class _Dashboard extends State<Dashboard> {
     FBroadcast.instance().register(key, (value, callback) {
       switch (key) {
         case AppStrings.key_start:
-
           AppUtils.showMessage(AppStrings.syncStarted);
           setSyncing(true);
           setState(() {
@@ -135,6 +151,9 @@ class _Dashboard extends State<Dashboard> {
           setState(() {
             percentage = value;
           });
+          break;
+        case AppStrings.key_set_chart:
+          fetchChartData();
           break;
       }
     }, context: this);
@@ -167,12 +186,24 @@ class _Dashboard extends State<Dashboard> {
             });
   }
 
-  void onDateSelected(String item,String fromDate, String toDate) {
+  void onDateSelected(String item, String fromDate, String toDate) {
     setState(() {
       chartDateText = item;
       this.fromDate = fromDate;
       this.toDate = toDate;
     });
+  }
+
+  TextStyle getTabTextStyle(String item) {
+    return item == chartView
+        ? TextStyle(
+            color: ColorConstants.colorPrimary.withOpacity(1),
+            fontSize: 16,
+            fontWeight: FontWeight.w600)
+        : TextStyle(
+            color: ColorConstants.colorPrimary.withOpacity(0.3),
+            fontSize: 16,
+            fontWeight: FontWeight.w400);
   }
 
   @override
@@ -184,18 +215,66 @@ class _Dashboard extends State<Dashboard> {
     setRegisters(AppStrings.key_sync_progress);
     setRegisters(AppStrings.key_success);
     setRegisters(AppStrings.key_failure);
+    setRegisters(AppStrings.key_set_chart);
 
     if (prefs == null) {
-      AppUtils.getPrefs().then((value) => setState(() {
-            prefs = value;
-            setLocations();
-            SyncHandler(context, value, instance).startSync();
-          }));
+      AppUtils.getPrefs().then((value) => {
+            setState(() {
+              prefs = value;
+            }),
+            setLocations(),
+            SyncHandler(context, value, instance).startSync(),
+            setState(() {
+              salesman = value.getString('user_id')!;
+              headers = AppUtils.headers(
+                  value.getString('tenant_id') != null
+                      ? value.getString('tenant_id')!
+                      : '',
+                  value.getString('token') != null
+                      ? value.getString('token')!
+                      : '');
+            }),
+            fetchChartData()
+          });
     }
 
     getUserStats();
 
     super.initState();
+  }
+
+  void fetchChartData() async {
+    var salesHistoryService = await AppUtils.requestBuilder(
+        AppUtils.baseUrl +
+            APIServices.getSalesHistoryService(series, fromDate, toDate,
+                salesman, includeFields1, includeFields2, includeFields3),
+        headers);
+    try {
+      if (salesHistoryService.statusCode == 200) {
+        handleSalesHistoryData(salesHistoryService.body);
+      }
+    } catch (e) {
+      AppUtils.showMessage('salesHistoryService error - ${e.toString()}');
+    }
+  }
+
+  void handleSalesHistoryData(String? body) {
+    if (body != null && body.isNotEmpty) {
+      List<dynamic> parsedListJson = jsonDecode(body);
+      if (mounted) { // check whether the state object is in tree
+        setState(() {
+          listSalesHistory = List<SalesHistoryData>.from(
+              parsedListJson.map<SalesHistoryData>(
+                      (dynamic i) => SalesHistoryData.fromJson(i)));
+        });
+      }
+    }
+  }
+
+  void setChartViewState(String value) {
+    setState(() {
+      chartView = value;
+    });
   }
 
   @override
@@ -206,78 +285,78 @@ class _Dashboard extends State<Dashboard> {
             drawer: getDrawer(),
             body: Container(
               color: Colors.white,
-              width: MediaQuery.of(context).size.width,
-              height: MediaQuery.of(context).size.height,
               child: Stack(
                 alignment: Alignment.topLeft,
                 children: [
                   Image.asset('assets/images/bg_dashboard_header.jpg',
                       fit: BoxFit.fill,
                       width: MediaQuery.of(context).size.width),
-                  Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 16.0, top: 32.0),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              onPressed: () =>
-                                  _scaffoldKey.currentState!.openDrawer(),
-                              icon: const Icon(
-                                Icons.menu,
-                                color: Colors.white,
+                  SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 16.0, top: 32.0),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                onPressed: () =>
+                                    _scaffoldKey.currentState!.openDrawer(),
+                                icon: const Icon(
+                                  Icons.menu,
+                                  color: Colors.white,
+                                ),
                               ),
-                            ),
-                            const SizedBox(
-                              width: 15,
-                              height: 1,
-                            ),
-                            locations.isNotEmpty
-                                ? Container(
-                                    padding: const EdgeInsets.only(
-                                        left: 15, top: 5, right: 15, bottom: 5),
-                                    child: PopupMenuDialog(
-                                      names: locationNames,
-                                      selected: locationValue!,
-                                      onLocationChanged: onLocationChange,
-                                    ),
-                                    decoration: const BoxDecoration(
-                                        color: ColorConstants.color_ECE6F6_20,
-                                        borderRadius: BorderRadius.all(
-                                            Radius.circular(25))),
-                                  )
-                                : Container(),
-                            Flexible(
-                              fit: FlexFit.tight,
-                              child: const SizedBox(
+                              const SizedBox(
                                 width: 15,
                                 height: 1,
                               ),
-                            ),
-                            isSyncing
-                                ? CircularPercentIndicator(
-                                    radius: 18.0,
-                                    lineWidth: 3.0,
-                                    percent: (percentage / 100),
-                                    center: Text(
-                                      '${percentage.toInt()}%',
-                                      style: const TextStyle(
-                                          color: Colors.white, fontSize: 10),
-                                    ),
-                                    progressColor: Colors.white,
-                                  )
-                                : Container(),
-                            const SizedBox(
-                              width: 15,
-                              height: 1,
-                            )
-                          ],
+                              locations.isNotEmpty
+                                  ? Container(
+                                      padding: const EdgeInsets.only(
+                                          left: 15,
+                                          top: 5,
+                                          right: 15,
+                                          bottom: 5),
+                                      child: PopupMenuDialog(
+                                        names: locationNames,
+                                        selected: locationValue!,
+                                        onLocationChanged: onLocationChange,
+                                      ),
+                                      decoration: const BoxDecoration(
+                                          color: ColorConstants.color_ECE6F6_20,
+                                          borderRadius: BorderRadius.all(
+                                              Radius.circular(25))),
+                                    )
+                                  : Container(),
+                              Flexible(
+                                fit: FlexFit.tight,
+                                child: const SizedBox(
+                                  width: 15,
+                                  height: 1,
+                                ),
+                              ),
+                              isSyncing
+                                  ? CircularPercentIndicator(
+                                      radius: 18.0,
+                                      lineWidth: 3.0,
+                                      percent: (percentage / 100),
+                                      center: Text(
+                                        '${percentage.toInt()}%',
+                                        style: const TextStyle(
+                                            color: Colors.white, fontSize: 10),
+                                      ),
+                                      progressColor: Colors.white,
+                                    )
+                                  : Container(),
+                              const SizedBox(
+                                width: 15,
+                                height: 1,
+                              )
+                            ],
+                          ),
                         ),
-                      ),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.vertical,
-                        child: Container(
+                        Container(
                           child: Column(
                             children: [
                               const SizedBox(
@@ -755,6 +834,95 @@ class _Dashboard extends State<Dashboard> {
                                                 ),
                                               ),
                                             ],
+                                          ),
+                                          const SizedBox(
+                                            height: 20,
+                                          ),
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceEvenly,
+                                            children: [
+                                              GestureDetector(
+                                                onTap: () => {
+                                                  setChartViewState(
+                                                      AppStrings.billed)
+                                                },
+                                                child: Column(
+                                                  children: [
+                                                    Text(AppStrings.billed,
+                                                        style: getTabTextStyle(
+                                                            AppStrings.billed)),
+                                                    const SizedBox(height: 5),
+                                                    AppStrings.billed ==
+                                                            chartView
+                                                        ? Container(
+                                                            height: 4,
+                                                            width: 40,
+                                                            decoration: const BoxDecoration(
+                                                                color: ColorConstants
+                                                                    .color_FF95CA4),
+                                                          )
+                                                        : Container()
+                                                  ],
+                                                ),
+                                              ),
+                                              GestureDetector(
+                                                onTap: () => {
+                                                  setChartViewState(
+                                                      AppStrings.ptr)
+                                                },
+                                                child: Column(
+                                                  children: [
+                                                    Text(AppStrings.ptr,
+                                                        style: getTabTextStyle(
+                                                            AppStrings.ptr)),
+                                                    const SizedBox(height: 5),
+                                                    AppStrings.ptr == chartView
+                                                        ? Container(
+                                                            height: 4,
+                                                            width: 40,
+                                                            decoration: const BoxDecoration(
+                                                                color: ColorConstants
+                                                                    .color_FF95CA4),
+                                                          )
+                                                        : Container()
+                                                  ],
+                                                ),
+                                              ),
+                                              GestureDetector(
+                                                onTap: () => {
+                                                  setChartViewState(
+                                                      AppStrings.nrv)
+                                                },
+                                                child: Column(
+                                                  children: [
+                                                    Text(AppStrings.nrv,
+                                                        style: getTabTextStyle(
+                                                            AppStrings.nrv)),
+                                                    const SizedBox(height: 5),
+                                                    AppStrings.nrv == chartView
+                                                        ? Container(
+                                                            height: 4,
+                                                            width: 40,
+                                                            decoration: const BoxDecoration(
+                                                                color: ColorConstants
+                                                                    .color_FF95CA4),
+                                                          )
+                                                        : Container()
+                                                  ],
+                                                ),
+                                              )
+                                            ],
+                                          ),
+                                          const SizedBox(
+                                            height: 20,
+                                          ),
+                                          Container(
+                                            height: 300,
+                                            child: BarChartComponent(
+                                                listSalesHistory:
+                                                    listSalesHistory,
+                                                chartView: chartView),
                                           )
                                         ],
                                       ),
@@ -762,9 +930,9 @@ class _Dashboard extends State<Dashboard> {
                               )
                             ],
                           ),
-                        ),
-                      )
-                    ],
+                        )
+                      ],
+                    ),
                   ),
                 ],
               ),
