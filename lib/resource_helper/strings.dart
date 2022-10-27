@@ -66,11 +66,21 @@ class AppStrings {
   static const String lastWeek = 'Last Week';
   static const String lastMonth = 'Last Month';
   static const String past3Months = 'Past 3 Months';
+  static const String entireRange = 'Entire Range';
   static const String currentFy = 'Current FY';
   static const String previousFy = 'Previous FY';
   static const String selectDateRange = 'Select Date Range';
+  static const String noChartDataAvailable = 'No chart data available!';
   static const String to = 'to';
   static const String billed = 'Billed';
   static const String ptr = 'PTR';
+  static const online = 'Online';
+  static const offline = 'Offline';
+  static const start = 'Start';
+  static const noSyncDone = 'No sync was done!';
+  static const lastSyncOn = 'Last sync on';
+  static const gpsTurnON = 'Please turn on GPS!';
+  static const waitForCorrectLocation = 'Please wait while we update the correct location!';
+  static const showingResults = 'Showing results';
 
 }

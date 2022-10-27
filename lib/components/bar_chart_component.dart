@@ -2,7 +2,10 @@ import 'dart:ffi';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:vajra/models/sales_history_data/sales_history.dart';
+import 'package:vajra/resource_helper/color_constants.dart';
 import 'package:vajra/resource_helper/strings.dart';
 
 class BarChartComponent extends StatefulWidget{
@@ -17,11 +20,52 @@ class BarChartComponent extends StatefulWidget{
 }
 
 class _BarChartComponent extends State<BarChartComponent>{
+
+  List<SalesHistoryData> data = [];
+
+  @override
+  void initState() {
+    // if(widget.listSalesHistory.length<10){
+    //   data = widget.listSalesHistory;
+    // }else{
+    //   data.add(widget.listSalesHistory[0]);
+    //   var firstDate = DateFormat('yyyy-MM-dd').parse(widget.listSalesHistory[0].date!);
+    //   var lastDate = DateFormat('yyyy-MM-dd').parse(widget.listSalesHistory[(widget.listSalesHistory.length-1)].date!);
+    //
+    //   var daysBetWeen = DateTimeRange(
+    //       start: firstDate,
+    //       end: lastDate
+    //     )
+    //       .duration
+    //       .inDays;
+    //
+    //   var inBetweenPoints = widget.listSalesHistory.length-2;
+    //   var intervals =  daysBetWeen~/inBetweenPoints;
+    //
+    //   List<String> dates = [];
+    //
+    //   for (SalesHistoryData dt in widget.listSalesHistory){
+    //     if(DateFormat('yyyy-MM-dd').parse(dt.date!)==firstDate){
+    //       dates.add(dt.date!);
+    //     }else if(DateFormat('yyyy-MM-dd').parse(dt.date!)==lastDate){
+    //       dates.add(dt.date!);
+    //     }else{
+    //       var lastExistingDate = DateFormat('yyyy-MM-dd').parse(dates[dates.length]);
+    //       if()
+    //     }
+    //   }
+    //
+    //
+    // }
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return BarChart(
         BarChartData(
             barGroups: _chartGroups(),
+            barTouchData: BarTouchData(enabled: true),
             borderData: FlBorderData(
                 border: const Border(bottom: BorderSide(), left: BorderSide()),
             ),
@@ -33,7 +77,9 @@ class _BarChartComponent extends State<BarChartComponent>{
               rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
             ),
 
-        )
+        ),
+      swapAnimationDuration: const Duration(milliseconds: 150), // Optional
+      swapAnimationCurve: Curves.linear,
     );
   }
 
@@ -46,6 +92,16 @@ class _BarChartComponent extends State<BarChartComponent>{
               barRods: [
                 BarChartRodData(
                     toY: point.orders!.toDouble(),
+                  borderRadius: const BorderRadius.all(Radius.circular(0)),
+                  
+                  gradient: const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      ColorConstants.colorPrimary,
+                      ColorConstants.color_ECE6F6_20
+                    ]
+                  )
                 )
               ]
           )
@@ -60,6 +116,16 @@ class _BarChartComponent extends State<BarChartComponent>{
               barRods: [
                 BarChartRodData(
                   toY: double.parse(point.ptr!),
+                    borderRadius: const BorderRadius.all(Radius.circular(0)),
+                    
+                    gradient: const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          ColorConstants.colorPrimary,
+                          ColorConstants.color_ECE6F6_20
+                        ]
+                    )
                 )
               ]
           )
@@ -71,9 +137,19 @@ class _BarChartComponent extends State<BarChartComponent>{
       return widget.listSalesHistory.map((point) =>
           BarChartGroupData(
               x: widget.listSalesHistory.indexOf(point),
+
               barRods: [
                 BarChartRodData(
                   toY: double.parse(point.nrv!),
+                    borderRadius: const BorderRadius.all(Radius.circular(0)),
+                    gradient: const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          ColorConstants.colorPrimary,
+                          ColorConstants.color_ECE6F6_20
+                        ]
+                    )
                 )
               ]
           )
@@ -87,8 +163,18 @@ class _BarChartComponent extends State<BarChartComponent>{
 
   SideTitles get _bottomTitles => SideTitles(
     showTitles: true,
+      getTitlesWidget: (value,meta){
+      return Transform.rotate(
+        angle: -340,
+        child: Text(widget.listSalesHistory[value.toInt()].date!),
+      );
+    }
+  );
+
+  SideTitles get _leftTitles => SideTitles(
+    showTitles: true,
     getTitlesWidget: (value,meta){
-      return Text(widget.listSalesHistory[value.toInt()].date!);
+      return Text('$value');
     }
   );
 

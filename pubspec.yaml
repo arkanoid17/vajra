@@ -41,10 +41,11 @@ dependencies:
   sqflite: ^2.1.0
   path: ^1.8.2
   path_provider: ^2.0.11
-  permission_handler: ^5.0.1
+  permission_handler: ^10.2.0
   fbroadcast: ^2.0.0
   percent_indicator: ^4.0.1
   fl_chart: ^0.55.2
+  geolocator: ^9.0.2
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -92,6 +93,8 @@ flutter:
     - assets/images/ic_bg_no_bill_stats.png
     - assets/images/ic_bg_nrv_stats.png
     - assets/images/ic_calendar_primary.png
+    - assets/images/ic_wifi_online.png
+    - assets/images/ic_wifi_offline.png
 
 
   # To add assets to your application, add an assets section, like this:

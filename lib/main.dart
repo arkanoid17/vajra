@@ -5,6 +5,7 @@ import 'package:vajra/resource_helper/strings.dart';
 import 'package:vajra/screens/dashboard.dart';
 import 'package:vajra/screens/login.dart';
 import 'package:vajra/screens/splash_screen.dart';
+import 'package:vajra/screens/store_listing.dart';
 import 'package:vajra/services/navigation_service.dart';
 
 void main() {
@@ -29,6 +30,7 @@ class MainScreen extends StatelessWidget {
         '/': (context) => SplashScreen(),
         '/login': (context) => LoginPage(),
         '/dashboard': (context) => Dashboard(),
+        '/stores': (context) => StoreListing(),
       },
     );
   }

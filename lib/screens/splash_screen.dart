@@ -35,7 +35,8 @@ class _SplashScreen extends State<SplashScreen> {
       //add more permission to request here.
     ].request();
 
-    if(statuses[Permission.location].isGranted && statuses[Permission.storage].isGranted){
+
+    if(statuses[Permission.location] == PermissionStatus.granted && statuses[Permission.storage] == PermissionStatus.granted){
       splashTimer();
     }else{
       Permission.location.request();

@@ -4,6 +4,7 @@ import 'package:fbroadcast/fbroadcast.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -60,6 +61,9 @@ class _Dashboard extends State<Dashboard> {
   var toDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
   var chartView = AppStrings.billed;
+
+  var isSyncDone = true;
+  var syncTime = '';
 
   String series = 'daily';
   String salesman = '';
@@ -141,10 +145,17 @@ class _Dashboard extends State<Dashboard> {
           break;
         case AppStrings.key_success:
           setSyncing(false);
+          setIsSyncDone(true);
           AppUtils.showMessage(AppStrings.dataRetrievalSuccess);
+          print(DateFormat('dd/MM/yyyy hh:mm a').format(DateTime.now()));
+          prefs!.setString(AppStrings.fetchTime, DateFormat('dd/MM/yyyy hh:mm a').format(DateTime.now()));
+          setState(() {
+            updateSyncTime(prefs!);
+          });
           break;
         case AppStrings.key_failure:
           setSyncing(false);
+          setIsSyncDone(false);
           AppUtils.showMessage(AppStrings.dataRetrievalSuccess);
           break;
         case AppStrings.key_sync_progress:
@@ -192,6 +203,7 @@ class _Dashboard extends State<Dashboard> {
       this.fromDate = fromDate;
       this.toDate = toDate;
     });
+    fetchChartData();
   }
 
   TextStyle getTabTextStyle(String item) {
@@ -221,6 +233,7 @@ class _Dashboard extends State<Dashboard> {
       AppUtils.getPrefs().then((value) => {
             setState(() {
               prefs = value;
+              updateSyncTime(value);
             }),
             setLocations(),
             SyncHandler(context, value, instance).startSync(),
@@ -233,6 +246,9 @@ class _Dashboard extends State<Dashboard> {
                   value.getString('token') != null
                       ? value.getString('token')!
                       : '');
+
+
+
             }),
             fetchChartData()
           });
@@ -275,6 +291,11 @@ class _Dashboard extends State<Dashboard> {
     setState(() {
       chartView = value;
     });
+  }
+
+  void navigateToStores() async{
+    bool isLocationEnabled = await Geolocator.isLocationServiceEnabled();
+    isLocationEnabled?Navigator.pushNamed(context, '/stores'):AppUtils.showMessage(AppStrings.gpsTurnON);
   }
 
   @override
@@ -451,7 +472,7 @@ class _Dashboard extends State<Dashboard> {
                                                       fontWeight:
                                                           FontWeight.w500),
                                                 ),
-                                                Text(
+                                                const Text(
                                                   AppStrings.today,
                                                   style: TextStyle(
                                                       color: Colors.white,
@@ -749,6 +770,9 @@ class _Dashboard extends State<Dashboard> {
                                     left: 16.0, right: 16.0),
                                 child: Card(
                                     elevation: 2,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8.0),
+                                    ),
                                     child: Padding(
                                       padding: const EdgeInsets.all(10),
                                       child: Column(
@@ -918,16 +942,79 @@ class _Dashboard extends State<Dashboard> {
                                             height: 20,
                                           ),
                                           Container(
-                                            height: 300,
-                                            child: BarChartComponent(
+                                            height: 200,
+                                            child: listSalesHistory.isEmpty?const Center(child: Text(AppStrings.noChartDataAvailable),):BarChartComponent(
                                                 listSalesHistory:
                                                     listSalesHistory,
-                                                chartView: chartView),
+                                                chartView: chartView
+                                            ),
                                           )
                                         ],
                                       ),
                                     )),
-                              )
+
+                              ),
+                              const SizedBox(height: 30,),
+                              Container(
+                                margin: const EdgeInsets.only(
+                                    left: 16.0, right: 16.0),
+                                child: Card(
+                                    elevation: 2,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8.0),
+                                    ),
+                                  child: Container(
+                                    decoration:  BoxDecoration(
+                                      borderRadius: const BorderRadius.all(Radius.circular(8)),
+                                      gradient:  isSyncDone?const LinearGradient(
+                                          begin: Alignment.centerLeft,
+                                          end: Alignment.centerRight,
+                                          colors: [
+                                            ColorConstants.colorPrimary,
+                                            ColorConstants.color_CC7E5BC0
+                                          ]
+                                      ):const LinearGradient(
+                                          begin: Alignment.centerLeft,
+                                          end: Alignment.centerRight,
+                                          colors: [
+                                            ColorConstants.color_ECE6F6_64,
+                                            ColorConstants.color_ECE6F6_64
+                                          ]
+                                      ),
+                                    ),
+                                    child: Padding(
+                                      padding: EdgeInsets.all(10),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              isSyncDone?Image.asset("assets/images/ic_wifi_online.png"):Image.asset("assets/images/ic_wifi_offline.png"),
+                                              const SizedBox(width: 10,),
+                                              isSyncDone?Text(AppStrings.online,style: TextStyle(color: ColorConstants.color_CEE6FB.shade50,fontSize: 16,fontWeight: FontWeight.w500),):const Text(AppStrings.offline,style: TextStyle(color: Colors.grey,fontSize: 16,fontWeight: FontWeight.w500)),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 10,),
+                                          syncTime.isEmpty?Text(AppStrings.noSyncDone,style: const TextStyle(color: Colors.white, fontSize: 16),):Text('${AppStrings.lastSyncOn}: $syncTime',style: const TextStyle(color: Colors.white, fontSize: 16)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              ),
+                              const SizedBox(height: 30,),
+                              ElevatedButton(onPressed: ()=>navigateToStores(),
+                                  style:ElevatedButton.styleFrom(
+                                    backgroundColor: ColorConstants.color_FFFF2F91.shade50,
+                                    shape: const RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.all(Radius.circular(4)),
+                                    )
+                                  ),
+                                  child: const Padding(
+                                padding: EdgeInsets.only(left: 30,right: 30,top: 12,bottom:12),
+                                child:Text(AppStrings.start),
+                              )),
+                              const SizedBox(height: 50,),
                             ],
                           ),
                         )
@@ -1108,5 +1195,15 @@ class _Dashboard extends State<Dashboard> {
     return prefs!.getString('user_id') != null
         ? prefs!.getString('user_id')!
         : '';
+  }
+
+  void updateSyncTime(SharedPreferences prf) {
+    syncTime = prf.containsKey(AppStrings.fetchTime)? prf.getString(AppStrings.fetchTime)!:'';
+  }
+
+  void setIsSyncDone(bool value){
+    setState(() {
+      isSyncDone = value;
+    });
   }
 }

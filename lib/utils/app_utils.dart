@@ -26,6 +26,8 @@ class AppUtils {
 
   static String webFiles = "web_files";
 
+  static int location_update_min_distance = 0;
+
   static void showMessage(var message){
     var snackbar = SnackBar(
       content: Text(message),
@@ -134,4 +136,49 @@ class AppUtils {
     }
     return '';
   }
+
+  static int getDistanceLocationUpdate(SharedPreferences prefs){
+    UserData? user = getUserData(prefs);
+    if (user!=null && user.settings!=null){
+      if (user.settings!.min_distance_location_update!=null ){
+        return user.settings!.min_distance_location_update!;
+      }
+    }
+    return location_update_min_distance;
+  }
+
+  static String dayOfTheWeek(){
+    const Map<int, String> weekdayName = {1: "MONDAY", 2: "TUESDAY", 3: "WEDNESDAY", 4: "THURSDAY", 5: "FRIDAY", 6: "SATURDAY", 7: "SUNDAY"};
+    return weekdayName[DateTime.now().weekday]!;
+  }
+
+  static int weekOfTheMonth() {
+    String date = DateTime.now().toString();
+
+// This will generate the time and date for first day of month
+    String firstDay = date.substring(0, 8) + '01' + date.substring(10);
+
+// week day for the first day of the month
+    int weekDay = DateTime.parse(firstDay).weekday;
+
+    DateTime testDate = DateTime.now();
+
+    int weekOfMonth;
+
+//  If your calender starts from Monday
+    weekDay--;
+    weekOfMonth = ((testDate.day + weekDay) / 7).ceil();
+    print('Week of the month: $weekOfMonth');
+    weekDay++;
+
+// If your calender starts from sunday
+    if (weekDay == 7) {
+      weekDay = 0;
+    }
+    weekOfMonth = ((testDate.day + weekDay) / 7).ceil();
+    print('Week of the month: $weekOfMonth');
+    return weekOfMonth;
+  }
+
+
 }

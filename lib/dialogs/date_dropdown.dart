@@ -125,6 +125,7 @@ class _DateDropDown extends State<DateDropDown> {
         getLastDayOfCurrentFY()));
     names.add(ChartDates(AppStrings.previousFy, getFirstDateOfPreviousFy(),
         getLastDayOfPreviousFY()));
+    names.add(ChartDates(AppStrings.entireRange, '', ''));
     names.add(ChartDates(AppStrings.selectDateRange, '', ''));
   }
 

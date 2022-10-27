@@ -92,7 +92,6 @@ class SyncHandler {
     fetchHeaders();
 
     if (!AppUtils.isSyncGoingOn){
-      sendBroadcastToDashboard("Start");
       checkServerData();
     }
   }
@@ -120,6 +119,7 @@ class SyncHandler {
 
     if (isTime && isPull) {
       AppUtils.isSyncGoingOn = true;
+      sendBroadcastToDashboard("Start");
       loadServerData();
     } else {
       AppUtils.isSyncGoingOn = false;
@@ -130,9 +130,7 @@ class SyncHandler {
     var formatter = DateFormat('dd/MM/yyyy hh:mm a');
 
     if(prefs.containsKey(AppStrings.fetchTime)){
-      String syncTime = prefs.getString(AppStrings.fetchTime) != null
-          ? prefs.getString(AppStrings.fetchTime)!
-          : '';
+      String syncTime = prefs.getString(AppStrings.fetchTime)!;
       var dateNow = DateTime.now();
 
       if(syncTime.isNotEmpty) {
@@ -145,8 +143,6 @@ class SyncHandler {
   }
 
   void getServiceCounts(){
-
-
     serviceNames.forEach((element) {
       servicesToBeCalled.putIfAbsent(element, () => false);
     });
@@ -741,6 +737,7 @@ class SyncHandler {
       }
 
       if(success){
+        prefs.setBool('if_pull', false);
         sendBroadcastToDashboard(AppStrings.key_success);
         sendBroadcastToDashboard(AppStrings.key_set_chart);
       }else{
