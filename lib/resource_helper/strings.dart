@@ -82,5 +82,11 @@ class AppStrings {
   static const gpsTurnON = 'Please turn on GPS!';
   static const waitForCorrectLocation = 'Please wait while we update the correct location!';
   static const showingResults = 'Showing results';
+  static const storeName = 'Store Name';
+  static const distance = 'Distance';
+  static const unbilled = 'Unbilled';
+  static const notVisited = 'Not visited';
+  static const noOrder = 'No Order';
+  static const bookOrder = 'Book Order';
 
 }

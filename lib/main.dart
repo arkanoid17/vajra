@@ -21,7 +21,7 @@ class MainScreen extends StatelessWidget {
     return MaterialApp(
       title: AppStrings.appName,
       theme: ThemeData(
-        primarySwatch: ColorConstants.colorPrimary,
+        primarySwatch: ColorConstants.colorTheme,
       ),
       navigatorKey: NavigationService.navigatorKey,
       initialRoute: '/',

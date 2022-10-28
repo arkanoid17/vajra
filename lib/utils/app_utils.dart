@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
@@ -26,7 +27,8 @@ class AppUtils {
 
   static String webFiles = "web_files";
 
-  static int location_update_min_distance = 0;
+  static int location_update_min_distance = 5;
+  static int min_time_location_update = 5;
 
   static void showMessage(var message){
     var snackbar = SnackBar(
@@ -147,6 +149,17 @@ class AppUtils {
     return location_update_min_distance;
   }
 
+  static int getTimeLocationUpdate(SharedPreferences prefs){
+    UserData? user = getUserData(prefs);
+    if (user!=null && user.settings!=null){
+      if (user.settings!.min_time_location_update!=null ){
+        return user.settings!.min_time_location_update!;
+      }
+    }
+    return min_time_location_update;
+  }
+
+
   static String dayOfTheWeek(){
     const Map<int, String> weekdayName = {1: "MONDAY", 2: "TUESDAY", 3: "WEDNESDAY", 4: "THURSDAY", 5: "FRIDAY", 6: "SATURDAY", 7: "SUNDAY"};
     return weekdayName[DateTime.now().weekday]!;
@@ -180,5 +193,9 @@ class AppUtils {
     return weekOfMonth;
   }
 
+
+  static String getDistance(double p1,double p2,double q1,double q2){
+    return Geolocator.distanceBetween(p1, p2, q1, q2).toStringAsFixed(2);
+  }
 
 }

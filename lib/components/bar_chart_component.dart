@@ -99,7 +99,7 @@ class _BarChartComponent extends State<BarChartComponent>{
                     end: Alignment.bottomCenter,
                     colors: [
                       ColorConstants.colorPrimary,
-                      ColorConstants.color_ECE6F6_20
+                      ColorConstants.color_ECE6F6_32
                     ]
                   )
                 )
@@ -123,7 +123,7 @@ class _BarChartComponent extends State<BarChartComponent>{
                         end: Alignment.bottomCenter,
                         colors: [
                           ColorConstants.colorPrimary,
-                          ColorConstants.color_ECE6F6_20
+                          ColorConstants.color_ECE6F6_32
                         ]
                     )
                 )
@@ -147,7 +147,7 @@ class _BarChartComponent extends State<BarChartComponent>{
                         end: Alignment.bottomCenter,
                         colors: [
                           ColorConstants.colorPrimary,
-                          ColorConstants.color_ECE6F6_20
+                          ColorConstants.color_ECE6F6_32
                         ]
                     )
                 )

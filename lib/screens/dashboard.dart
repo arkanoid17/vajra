@@ -345,7 +345,7 @@ class _Dashboard extends State<Dashboard> {
                                         onLocationChanged: onLocationChange,
                                       ),
                                       decoration: const BoxDecoration(
-                                          color: ColorConstants.color_ECE6F6_20,
+                                          color: ColorConstants.color_ECE6F6_32,
                                           borderRadius: BorderRadius.all(
                                               Radius.circular(25))),
                                     )
@@ -991,7 +991,7 @@ class _Dashboard extends State<Dashboard> {
                                             children: [
                                               isSyncDone?Image.asset("assets/images/ic_wifi_online.png"):Image.asset("assets/images/ic_wifi_offline.png"),
                                               const SizedBox(width: 10,),
-                                              isSyncDone?Text(AppStrings.online,style: TextStyle(color: ColorConstants.color_CEE6FB.shade50,fontSize: 16,fontWeight: FontWeight.w500),):const Text(AppStrings.offline,style: TextStyle(color: Colors.grey,fontSize: 16,fontWeight: FontWeight.w500)),
+                                              isSyncDone?Text(AppStrings.online,style: TextStyle(color: ColorConstants.color_CEE6FB,fontSize: 16,fontWeight: FontWeight.w500),):const Text(AppStrings.offline,style: TextStyle(color: Colors.grey,fontSize: 16,fontWeight: FontWeight.w500)),
                                             ],
                                           ),
                                           const SizedBox(height: 10,),
@@ -1005,7 +1005,7 @@ class _Dashboard extends State<Dashboard> {
                               const SizedBox(height: 30,),
                               ElevatedButton(onPressed: ()=>navigateToStores(),
                                   style:ElevatedButton.styleFrom(
-                                    backgroundColor: ColorConstants.color_FFFF2F91.shade50,
+                                    backgroundColor: ColorConstants.color_FFFF2F91,
                                     shape: const RoundedRectangleBorder(
                                       borderRadius: BorderRadius.all(Radius.circular(4)),
                                     )
