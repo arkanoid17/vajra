@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vajra/components/map_stores_component.dart';
 import 'package:vajra/db/database_helper.dart';
 import 'package:vajra/db/store_beat_mapping_data_detail/store_beat_mapping_data_detail.dart';
 import 'package:vajra/db/store_color_data_detail/store_color_data_detail.dart';
@@ -50,9 +51,18 @@ class _StoreListing extends State<StoreListing> {
   List<StoresDataDetail> stores = [];
   List<StoresDataDetail> sortedList = [];
 
-  List<String> visitTypes = [AppStrings.billed,AppStrings.unbilled,AppStrings.notVisited];
-  List<Color> visitColors = [ColorConstants.billedColor,ColorConstants.unBilledColor,ColorConstants.notVisitedColor];
+  List<String> visitTypes = [
+    AppStrings.billed,
+    AppStrings.unbilled,
+    AppStrings.notVisited
+  ];
+  List<Color> visitColors = [
+    ColorConstants.billedColor,
+    ColorConstants.unBilledColor,
+    ColorConstants.notVisitedColor
+  ];
 
+  String viewType = 'list';
 
   void getLocation() {
     final LocationSettings locationSettings = LocationSettings(
@@ -217,19 +227,21 @@ class _StoreListing extends State<StoreListing> {
     List<int> beats = selectedBeats.map((e) => e.id!).toList();
     String ids = beats.join(', ');
 
-    var result = await instance.execQuery('SELECT ${StoreBeatMappingDataDetailFields.storeId} FROM ${instance.storeBeatMappingDataDetail} WHERE ${StoreBeatMappingDataDetailFields.beatId} in ($ids) and ${StoreBeatMappingDataDetailFields.salesmanId} = $selectedUser');
+    var result = await instance.execQuery(
+        'SELECT ${StoreBeatMappingDataDetailFields.storeId} FROM ${instance.storeBeatMappingDataDetail} WHERE ${StoreBeatMappingDataDetailFields.beatId} in ($ids) and ${StoreBeatMappingDataDetailFields.salesmanId} = $selectedUser');
 
     List<String> storeIds = [];
-    storeIds.addAll(result.map((e) => e[StoreBeatMappingDataDetailFields.storeId].toString()).toList());
+    storeIds.addAll(result
+        .map((e) => e[StoreBeatMappingDataDetailFields.storeId].toString())
+        .toList());
 
-    for(StoresDataDetail store in stores){
-      if(storeIds.contains(store.storeId)){
+    for (StoresDataDetail store in stores) {
+      if (storeIds.contains(store.storeId)) {
         beatStores.add(store);
       }
     }
 
     beatStores.sort((a, b) => a.distance!.compareTo(b.distance!));
-
 
     setState(() {
       sortedList = beatStores;
@@ -316,7 +328,6 @@ class _StoreListing extends State<StoreListing> {
         location!.longitude,
       );
 
-
       instance.execQuery(
           'UPDATE ${instance.storeDataDetail} SET distance = $distance');
 
@@ -352,47 +363,45 @@ class _StoreListing extends State<StoreListing> {
   }
 
   String getBeatNames() {
-    var names = '';
-    for (UserHierarchyBeat name in selectedBeats) {
-      names += '${name.name} ,';
-    }
-
-    // names = names.substring(0, names.length - 1);
-
+    var names = selectedBeats.map((e) => e.name).toList().join(', ');
     return names;
   }
 
-  String getDistanceValue(String val){
+  String getDistanceValue(String val) {
     double dist = double.parse(val);
-    if(dist>1000){
-      dist = dist/1000;
+    if (dist > 1000) {
+      dist = dist / 1000;
       return '${(dist.toStringAsFixed(2))} KM';
     }
 
     return '$dist M';
   }
 
-  Future<int> getVisitDetails(String storeId) async{
-    var result = await instance.execQuery('SELECT ${StoreColorDataDetailFields.colour} from ${instance.storeColorDataDetail} where ${StoreColorDataDetailFields.storeId} = "$storeId" AND ${StoreColorDataDetailFields.salesTerritory} = ${getSalesTerritory()}');
-    for(var element in result){
-      if(element!=null && element[StoreColorDataDetailFields.colour]!=null){
+  Future<int> getVisitDetails(String storeId) async {
+    var result = await instance.execQuery(
+        'SELECT ${StoreColorDataDetailFields.colour} from ${instance.storeColorDataDetail} where ${StoreColorDataDetailFields.storeId} = "$storeId" AND ${StoreColorDataDetailFields.salesTerritory} = ${getSalesTerritory()}');
+    for (var element in result) {
+      if (element != null &&
+          element[StoreColorDataDetailFields.colour] != null) {
         int pos = element[StoreColorDataDetailFields.colour];
         return pos;
-      }else{
+      } else {
         return 2;
       }
     }
     return 2;
   }
 
-  int getSalesTerritory(){
-    for(UserHierarchyDataDetail detail in allUsers){
-      if(detail.serverId==selectedUser){
+  int getSalesTerritory() {
+    for (UserHierarchyDataDetail detail in allUsers) {
+      if (detail.serverId == selectedUser) {
         var locationsString = detail.locations;
-        if(locationsString!=null && locationsString.isNotEmpty){
+        if (locationsString != null && locationsString.isNotEmpty) {
           List<dynamic> parsedList = jsonDecode(locationsString);
-          var locationList = List<UserHierarchyLocation>.from(parsedList.map<UserHierarchyLocation>((dynamic i) => UserHierarchyLocation.fromJson(i)));
-          if(locationList!=null && locationList.isNotEmpty){
+          var locationList = List<UserHierarchyLocation>.from(
+              parsedList.map<UserHierarchyLocation>(
+                  (dynamic i) => UserHierarchyLocation.fromJson(i)));
+          if (locationList != null && locationList.isNotEmpty) {
             return locationList[0].id!;
           }
         }
@@ -419,24 +428,47 @@ class _StoreListing extends State<StoreListing> {
             color: Colors.white,
           ),
         ),
+        actions: [
+          IconButton(onPressed: () {}, icon: Icon(Icons.filter_list)),
+          PopupMenuButton<int>(
+              itemBuilder: (BuildContext context) => <PopupMenuItem<int>>[
+                    const PopupMenuItem<int>(
+                        value: 1, child: Text(AppStrings.mapListView)),
+                    const PopupMenuItem<int>(
+                        value: 2, child: Text(AppStrings.sortList)),
+                    const PopupMenuItem<int>(
+                        value: 3, child: Text(AppStrings.refresh)),
+                  ],
+              onSelected: (int value) {
+                if(stores.isNotEmpty){
+                 switch(value){
+                   case 1:
+                     setState(() {
+                        viewType = viewType=='list'?'map':'list';
+                     });
+                     break;
+                 }
+                }
+              })
+        ],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           location == null
               ? Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: ColorConstants.color_FF5DC0FF,
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.all(8),
-                    child: Text(
-                      AppStrings.waitForCorrectLocation,
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                    ),
-                  ),
-                )
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: ColorConstants.color_FF5DC0FF,
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(8),
+              child: Text(
+                AppStrings.waitForCorrectLocation,
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
+            ),
+          )
               : Container(),
           Padding(
             padding:
@@ -446,111 +478,167 @@ class _StoreListing extends State<StoreListing> {
               style: const TextStyle(fontSize: 14, color: Colors.grey),
             ),
           ),
-          sortedList.isNotEmpty?
-          Expanded(child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: sortedList.length,
-            itemBuilder: (BuildContext ctx, int index){
-              return Container(
-                margin: EdgeInsets.only(left: 16,right: 16,top: 5,bottom: 5),
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.all(Radius.circular(8)),
-                  border: Border.all(
-                    color: ColorConstants.color_FFE5E5E5,
-                    width: 1
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Expanded(
-                            flex: 3,
-                            child: Text('${AppStrings.storeName}:',style: TextStyle(color: Colors.grey,fontSize: 12),)
-                        ),
-                        Expanded(
-                            flex: 7,
-                            child: Text('${sortedList[index].storeName}', style: const TextStyle(color: Colors.black,fontSize: 15,fontWeight: FontWeight.w700),)
-                        ),
-                      ],
+          sortedList.isNotEmpty
+              ? viewType=='list'?Expanded(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: sortedList.length,
+                itemBuilder: (BuildContext ctx, int index) {
+                  return Container(
+                    margin: EdgeInsets.only(
+                        left: 16, right: 16, top: 5, bottom: 5),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                      border: Border.all(
+                          color: ColorConstants.color_FFE5E5E5, width: 1),
                     ),
-                    const SizedBox(height: 5,),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Column(
                       children: [
-                        const Expanded(
-                            flex: 3,
-                            child: Text('${AppStrings.distance}:',style: TextStyle(color: Colors.grey,fontSize: 12),)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Expanded(
+                                flex: 3,
+                                child: Text(
+                                  '${AppStrings.storeName}:',
+                                  style: TextStyle(
+                                      color: Colors.grey, fontSize: 12),
+                                )),
+                            Expanded(
+                                flex: 7,
+                                child: Text(
+                                  '${sortedList[index].storeName}',
+                                  style: const TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700),
+                                )),
+                          ],
                         ),
-                        Expanded(
-                            flex: 7,
-                            child: Row(
-                              children: [
-                                Text('${getDistanceValue(sortedList[index].distance!)} ', style: const TextStyle(color: Colors.black,fontSize: 14,fontWeight: FontWeight.w700),),
-                               Expanded(child:  FutureBuilder(
-                                 initialData: 2,
-                                 future:getVisitDetails(sortedList[index].storeId!),
-                                 builder: (BuildContext ctx,AsyncSnapshot<int> pos){
-                                   return Text('\u25CF ${visitTypes[pos.data!]}', style: TextStyle(color: visitColors[pos.data!],fontSize: 14,fontWeight: FontWeight.w500),);
-                                 },)),
-                              ],
-                            )
+                        const SizedBox(
+                          height: 5,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 5,),
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                            child: ElevatedButton(
-                              onPressed: () {},
-                              child: Icon(Icons.call_outlined,color: ColorConstants.colorPrimary,size: 24,),
-                              style: ButtonStyle(
-                                shape: MaterialStateProperty.all(CircleBorder()),
-                                padding: MaterialStateProperty.all(EdgeInsets.all(5)),
-                                backgroundColor: MaterialStateProperty.all(ColorConstants.color_ECE6F6_FF), // <-- Button color
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Expanded(
+                                flex: 3,
+                                child: Text(
+                                  '${AppStrings.distance}:',
+                                  style: TextStyle(
+                                      color: Colors.grey, fontSize: 12),
+                                )),
+                            Expanded(
+                                flex: 7,
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      '${getDistanceValue(sortedList[index].distance!)} ',
+                                      style: const TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700),
+                                    ),
+                                    Expanded(
+                                        child: FutureBuilder(
+                                          initialData: 2,
+                                          future: getVisitDetails(
+                                              sortedList[index].storeId!),
+                                          builder: (BuildContext ctx,
+                                              AsyncSnapshot<int> pos) {
+                                            return Text(
+                                              '\u25CF ${visitTypes[pos.data!]}',
+                                              style: TextStyle(
+                                                  color: visitColors[pos.data!],
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w500),
+                                            );
+                                          },
+                                        )),
+                                  ],
+                                )),
+                          ],
+                        ),
+                        const SizedBox(
+                          height: 5,
+                        ),
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: ElevatedButton(
+                                onPressed: () {},
+                                child: Icon(
+                                  Icons.call_outlined,
+                                  color: ColorConstants.colorPrimary,
+                                  size: 24,
+                                ),
+                                style: ButtonStyle(
+                                  shape: MaterialStateProperty.all(
+                                      CircleBorder()),
+                                  padding: MaterialStateProperty.all(
+                                      EdgeInsets.all(5)),
+                                  backgroundColor: MaterialStateProperty.all(
+                                      ColorConstants
+                                          .color_ECE6F6_FF), // <-- Button color
+                                ),
                               ),
                             ),
-                        ),
-                        Expanded(
-                          flex: 4,
-                            child: ElevatedButton(
-                          onPressed: (){},
-                              child: Text(AppStrings.noOrder,style: TextStyle(color: ColorConstants.colorPrimary,fontSize: 14,fontWeight: FontWeight.w600),),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: ColorConstants.color_ECE6F6_FF,
-                                shape:RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20), // <-- Radius
-                                ),
-                              ),
-
-                        )),
-                        SizedBox(width: 10,),
-                        Expanded(
-                            flex: 4,
-                            child: ElevatedButton(
-                              onPressed: (){},
-                              child: Text(AppStrings.bookOrder,style: TextStyle(color: ColorConstants.colorPrimary,fontSize: 14,fontWeight: FontWeight.w600),),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: ColorConstants.color_ECE6F6_FF,
-                                shape:RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20), // <-- Radius
-                                ),
-                              ),
-
-                            ))
+                            Expanded(
+                                flex: 4,
+                                child: ElevatedButton(
+                                  onPressed: () {},
+                                  child: Text(
+                                    AppStrings.noOrder,
+                                    style: TextStyle(
+                                        color: ColorConstants.colorPrimary,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                    ColorConstants.color_ECE6F6_FF,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                          20), // <-- Radius
+                                    ),
+                                  ),
+                                )),
+                            SizedBox(
+                              width: 10,
+                            ),
+                            Expanded(
+                                flex: 4,
+                                child: ElevatedButton(
+                                  onPressed: () {},
+                                  child: Text(
+                                    AppStrings.bookOrder,
+                                    style: TextStyle(
+                                        color: ColorConstants.colorPrimary,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                    ColorConstants.color_ECE6F6_FF,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                          20), // <-- Radius
+                                    ),
+                                  ),
+                                ))
+                          ],
+                        )
                       ],
-                    )
-                  ],
-                ),
-
-              );
-            },
-          ))
-              :Expanded(child: Center(child: CircularProgressIndicator(),))
+                    ),
+                  );
+                },
+              )):MapStoresComponent(location:location!,stores:sortedList)
+              : Expanded(
+                  child: Center(
+                  child: CircularProgressIndicator(),
+                ))
         ],
       ),
     );

@@ -88,5 +88,8 @@ class AppStrings {
   static const notVisited = 'Not visited';
   static const noOrder = 'No Order';
   static const bookOrder = 'Book Order';
+  static const mapListView = 'Map/List View';
+  static const sortList = 'Sort List';
+  static const refresh = 'Refresh';
 
 }
