@@ -21,6 +21,7 @@ class ColorConstants {
   static const Color colorPrimary = Color.fromARGB(255, 83, 27 , 147);
   static const Color color_ECE6F6_32 = Color.fromARGB(50, 236, 230 , 246);
   static const Color color_ECE6F6_64 = Color.fromARGB(100, 236, 230 , 246);
+  static const Color color_ECE6F6_96 = Color.fromARGB(150, 236, 230 , 246);
   static const Color color_CC7E5BC0 = Color.fromARGB(204, 126, 91 , 192);
   static const Color color_FFE5E5E5 = Color.fromARGB(255, 229, 229 , 229);
   static const Color color_FF95CA4 = Color.fromARGB(255, 255, 149 , 202);

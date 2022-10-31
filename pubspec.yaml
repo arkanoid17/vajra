@@ -96,6 +96,14 @@ flutter:
     - assets/images/ic_calendar_primary.png
     - assets/images/ic_wifi_online.png
     - assets/images/ic_wifi_offline.png
+    - assets/images/view_store_primary.png
+    - assets/images/book_order_primary.png
+    - assets/images/bill_no_order_primary.png
+    - assets/images/task_primary.png
+    - assets/images/call_primary.png
+    - assets/images/message_primary.png
+    - assets/images/navigation_primary.png
+    - assets/images/view_image_primary.png
 
 
   # To add assets to your application, add an assets section, like this:

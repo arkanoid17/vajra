@@ -284,6 +284,10 @@ class _Dashboard extends State<Dashboard> {
                       (dynamic i) => SalesHistoryData.fromJson(i)));
         });
       }
+    }else{
+      setState(() {
+        listSalesHistory = [];
+      });
     }
   }
 

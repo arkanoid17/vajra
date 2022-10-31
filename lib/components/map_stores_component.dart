@@ -1,7 +1,10 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:vajra/db/stores_data_detail/stores_data_detail.dart';
+import 'package:vajra/dialogs/store_options.dailog.dart';
+import 'package:vajra/utils/app_utils.dart';
 
 class MapStoresComponent extends StatefulWidget {
   final Position location;
@@ -36,7 +39,9 @@ class _MapStoresComponent extends State<MapStoresComponent> {
           markerId: MarkerId(store.storeId!),
           position: LatLng(double.parse(store.storeLatitude!),
               double.parse(store.storeLongitude!)),
-          infoWindow: InfoWindow(title: store.name,onTap: (){})));
+          infoWindow: InfoWindow(title: store.name,onTap: (){
+            AppUtils.showBottomDialog(context, true, false, Colors.white, StoreOptionsDialog(store:store));
+          })));
     }
 
     super.initState();

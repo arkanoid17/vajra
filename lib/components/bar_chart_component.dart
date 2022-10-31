@@ -25,38 +25,48 @@ class _BarChartComponent extends State<BarChartComponent>{
 
   @override
   void initState() {
-    // if(widget.listSalesHistory.length<10){
-    //   data = widget.listSalesHistory;
-    // }else{
-    //   data.add(widget.listSalesHistory[0]);
-    //   var firstDate = DateFormat('yyyy-MM-dd').parse(widget.listSalesHistory[0].date!);
-    //   var lastDate = DateFormat('yyyy-MM-dd').parse(widget.listSalesHistory[(widget.listSalesHistory.length-1)].date!);
-    //
-    //   var daysBetWeen = DateTimeRange(
-    //       start: firstDate,
-    //       end: lastDate
-    //     )
-    //       .duration
-    //       .inDays;
-    //
-    //   var inBetweenPoints = widget.listSalesHistory.length-2;
-    //   var intervals =  daysBetWeen~/inBetweenPoints;
-    //
-    //   List<String> dates = [];
-    //
-    //   for (SalesHistoryData dt in widget.listSalesHistory){
-    //     if(DateFormat('yyyy-MM-dd').parse(dt.date!)==firstDate){
-    //       dates.add(dt.date!);
-    //     }else if(DateFormat('yyyy-MM-dd').parse(dt.date!)==lastDate){
-    //       dates.add(dt.date!);
-    //     }else{
-    //       var lastExistingDate = DateFormat('yyyy-MM-dd').parse(dates[dates.length]);
-    //       if()
-    //     }
-    //   }
-    //
-    //
-    // }
+
+    List<SalesHistoryData> values = [];
+
+    if(widget.listSalesHistory.length<10){
+      values = widget.listSalesHistory;
+    }else{
+      double interval = widget.listSalesHistory.length/10;
+      double carryOver = 0;
+
+      for(int i = 0;i<10;i++){
+
+        int intervalPoint = (interval+carryOver).toInt();
+        carryOver = interval-intervalPoint;
+
+        String dates = '';
+        int orders = 0;
+        double ptr = 0.0,nrv = 0.0;
+
+
+        //date
+        if(intervalPoint<1){
+          dates = widget.listSalesHistory[data.length].date!;
+        }else{
+          dates = '${widget.listSalesHistory[data.length].date!} - ${widget.listSalesHistory[(data.length+intervalPoint)-1].date!} ';
+        }
+
+        //orders,ptr,nrv
+        for(int j = 0;j < intervalPoint;j++){
+          orders = orders+widget.listSalesHistory[data.length+j].orders!;
+          ptr = ptr+double.parse(widget.listSalesHistory[data.length+j].ptr!);
+          nrv = nrv+double.parse(widget.listSalesHistory[data.length+j].nrv!);
+        }
+
+        values.add(SalesHistoryData(dates, orders, nrv.toString(), ptr.toString()));
+      }
+
+      print(values.length);
+      setState(() {
+        data = values;
+      });
+
+    }
     super.initState();
   }
 
@@ -86,9 +96,9 @@ class _BarChartComponent extends State<BarChartComponent>{
   List<BarChartGroupData> _chartGroups() {
 
     if(widget.chartView==AppStrings.billed){
-      return widget.listSalesHistory.map((point) =>
+      return data.map((point) =>
           BarChartGroupData(
-              x: widget.listSalesHistory.indexOf(point),
+              x: data.indexOf(point),
               barRods: [
                 BarChartRodData(
                     toY: point.orders!.toDouble(),
@@ -110,9 +120,9 @@ class _BarChartComponent extends State<BarChartComponent>{
     }
 
     if(widget.chartView==AppStrings.ptr){
-      return widget.listSalesHistory.map((point) =>
+      return data.map((point) =>
           BarChartGroupData(
-              x: widget.listSalesHistory.indexOf(point),
+              x: data.indexOf(point),
               barRods: [
                 BarChartRodData(
                   toY: double.parse(point.ptr!),
@@ -134,9 +144,9 @@ class _BarChartComponent extends State<BarChartComponent>{
     }
 
     if(widget.chartView==AppStrings.nrv){
-      return widget.listSalesHistory.map((point) =>
+      return data.map((point) =>
           BarChartGroupData(
-              x: widget.listSalesHistory.indexOf(point),
+              x: data.indexOf(point),
 
               barRods: [
                 BarChartRodData(
@@ -166,7 +176,7 @@ class _BarChartComponent extends State<BarChartComponent>{
       getTitlesWidget: (value,meta){
       return Transform.rotate(
         angle: -340,
-        child: Text(widget.listSalesHistory[value.toInt()].date!),
+        child: Text(data[value.toInt()].date!),
       );
     }
   );

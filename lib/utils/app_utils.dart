@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:vajra/models/user_data/user_data.dart';
+import 'package:vajra/dialogs/user_selection_diaalog.dart';
 import 'package:vajra/services/navigation_service.dart';
 
 class AppUtils {
@@ -63,6 +64,19 @@ class AppUtils {
         builder: (ctx) {
           return view;
         });
+  }
+  
+  static showDialog(BuildContext context,Widget widget){
+    showGeneralDialog(
+      context: context,
+      pageBuilder: (
+          BuildContext context,
+          Animation<double> animation,
+          Animation<double> secondaryAnimation,
+          ) {
+        return widget;
+      },
+    );
   }
 
   static Map<String,String> headers(String tenantId,String token){

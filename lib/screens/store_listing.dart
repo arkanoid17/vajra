@@ -7,11 +7,23 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vajra/components/map_stores_component.dart';
 import 'package:vajra/db/database_helper.dart';
+import 'package:vajra/db/pricing_data_detail/pricing_data_detail.dart';
 import 'package:vajra/db/store_beat_mapping_data_detail/store_beat_mapping_data_detail.dart';
 import 'package:vajra/db/store_color_data_detail/store_color_data_detail.dart';
+import 'package:vajra/db/store_price_mapping_data_detail/store_price_mapping_data_detail.dart';
 import 'package:vajra/db/store_types_data_detail/store_types_data_detail.dart';
 import 'package:vajra/db/stores_data_detail/stores_data_detail.dart';
 import 'package:vajra/db/user_hierarchy_data_detail/user_hierarchy_data_detail.dart';
+import 'package:vajra/dialogs/store_options.dailog.dart';
+import 'package:vajra/dialogs/user_selection_diaalog.dart';
+import 'package:vajra/models/pricing_data/pricing_response.dart';
+import 'package:vajra/models/pricing_data/product_pricing_obj.dart';
+import 'package:vajra/models/stores_data/colours.dart';
+import 'package:vajra/models/stores_data/pricing.dart';
+import 'package:vajra/models/stores_data/store_beat.dart';
+import 'package:vajra/models/stores_data/store_data.dart';
+import 'package:vajra/models/stores_data/store_response.dart';
+import 'package:vajra/models/user_data/user_data.dart';
 import 'package:vajra/models/user_hierarchy/hierarchy_beat_calendar.dart';
 import 'package:vajra/models/user_hierarchy/user_hierarchy.dart';
 import 'package:vajra/models/user_hierarchy/user_hierarchy_beat.dart';
@@ -20,7 +32,9 @@ import 'package:vajra/models/user_hierarchy/user_hierarchy_salesman_distributors
 import 'package:vajra/models/user_selector/user_selector.dart';
 import 'package:vajra/resource_helper/color_constants.dart';
 import 'package:vajra/resource_helper/strings.dart';
+import 'package:vajra/services/APIServices.dart';
 import 'package:vajra/utils/app_utils.dart';
+import 'package:vajra/utils/network_connectivity.dart';
 
 class StoreListing extends StatefulWidget {
   const StoreListing({super.key});
@@ -46,10 +60,13 @@ class _StoreListing extends State<StoreListing> {
   String todayDate = '';
   int selectedUser = 0;
 
+  bool fetchingLocation = true;
+
   late DatabaseHelper instance;
 
   List<StoresDataDetail> stores = [];
   List<StoresDataDetail> sortedList = [];
+  List<StoresDataDetail> filteredList = [];
 
   List<String> visitTypes = [
     AppStrings.billed,
@@ -64,6 +81,10 @@ class _StoreListing extends State<StoreListing> {
 
   String viewType = 'list';
 
+  bool isSearching = false;
+
+  Map<String, String> headers = {};
+
   void getLocation() {
     final LocationSettings locationSettings = LocationSettings(
       accuracy: LocationAccuracy.high,
@@ -75,6 +96,7 @@ class _StoreListing extends State<StoreListing> {
             .listen((Position? position) {
       if (position != null) {
         setState(() {
+          fetchingLocation = false;
           location = position;
         });
         updateLocationChange();
@@ -245,12 +267,12 @@ class _StoreListing extends State<StoreListing> {
 
     setState(() {
       sortedList = beatStores;
+      filteredList = beatStores;
     });
   }
 
   void getStores() async {
     List<StoresDataDetail> storeList = [];
-    // instance.execQuery('SELECT ${instance.storeDataDetail}.* from ${instance.storeDataDetail} inner join ${instance.storeBeatMappingDataDetail} on ${instance.storeBeatMappingDataDetail}.${StoreBeatMappingDataDetailFields.storeId}=${instance.storeDataDetail}.${StoresDataDetailFields.storeId} and ${instance.storeBeatMappingDataDetail}.${StoreBeatMappingDataDetailFields.salesmanId} = :$selectedUser where ${instance.storeDataDetail}.${StoresDataDetailFields.salesmanId} = :$selectedUser and ${instance.storeBeatMappingDataDetail}.${StoreBeatMappingDataDetailFields.beatId} in(:${selectedBeats.map((e) => e.id).toList()}) group by ${instance.storeDataDetail}.${StoresDataDetailFields.storeId} order by ${StoresDataDetailFields.distance}');
 
     var result = await instance.execQuery(
         'SELECT * FROM ${instance.storeDataDetail} WHERE ${StoresDataDetailFields.salesmanId} = ${AppUtils.getSalesman(prefs!)}');
@@ -352,10 +374,17 @@ class _StoreListing extends State<StoreListing> {
       AppUtils.getPrefs().then((value) => {
             setState(() {
               prefs = value;
+              headers = AppUtils.headers(
+                  value.getString('tenant_id') != null
+                      ? value.getString('tenant_id')!
+                      : '',
+                  value.getString('token') != null
+                      ? value.getString('token')!
+                      : '');
             }),
+            selectedUser = AppUtils.getSalesman(value),
             getStoreTypes(),
             getLocation(),
-            selectedUser = AppUtils.getSalesman(value),
           });
     }
 
@@ -411,6 +440,224 @@ class _StoreListing extends State<StoreListing> {
     return 0;
   }
 
+  void setRefreshClick() {
+    prefs!.remove('last_store_update');
+    if (isSalesMan()) {
+      fetchStores();
+    } else {
+      getStores();
+    }
+  }
+
+  bool isSalesMan() {
+    UserData? user = AppUtils.getUserData(prefs!);
+    if (user != null) {
+      return user.isSalesman!;
+    }
+    return false;
+  }
+
+  void fetchStores() async {
+    var isConnected = await NetworkConnectivity.isConnected();
+    if (isConnected) {
+      setState(() {
+        sortedList = [];
+        filteredList = [];
+      });
+
+      var storesService = await AppUtils.requestBuilder(
+          AppUtils.baseUrl +
+              APIServices.getStoreService(AppUtils.getSalesman(prefs!)),
+          headers);
+      try {
+        if (storesService.statusCode == 200) {
+          handleStoresData(storesService.body);
+        }
+      } catch (e) {
+        getStores();
+        AppUtils.showMessage('stores error - ${e.toString()}');
+      }
+    } else {
+      AppUtils.showMessage(AppStrings.networkError);
+    }
+  }
+
+  void handleStoresData(String? body) {
+    if (body != null && body.isNotEmpty) {
+      StoreResponse storeResponse = StoreResponse.fromJson(jsonDecode(body));
+      if (storeResponse.data != null && storeResponse.data!.isNotEmpty) {
+        saveLastStoreUpdate(storeResponse.lastUpdate);
+        insertStoresData(storeResponse.data);
+      }
+    }
+  }
+
+  void saveLastStoreUpdate(String? lastUpdate) {
+    if (lastUpdate != null && lastUpdate.isNotEmpty) {
+      prefs!.setString('last_store_update', lastUpdate);
+    }
+  }
+
+  void insertStoresData(List<StoreData>? stores) {
+    instance.deleteAllData(instance.storeDataDetail);
+    instance.deleteAllData(instance.storeBeatMappingDataDetail);
+    instance.deleteAllData(instance.storeColorDataDetail);
+    instance.deleteAllData(instance.storePriceMappingDataDetail);
+
+    List<int> pricingIds = [];
+
+    for (StoreData store in stores!) {
+      StoresDataDetail detail = StoresDataDetail(
+          store.outletId,
+          store.storeId,
+          store.storeName,
+          store.storeLatitude,
+          store.storeLongitude,
+          jsonEncode(store.beats?.map((e) => e.toJson()).toList()),
+          jsonEncode(
+              store.distributorRelation?.map((e) => e.toJson()).toList()),
+          store.tenantId,
+          store.name,
+          store.ownerName,
+          store.managerName,
+          store.contactNo,
+          store.alternateNo,
+          store.division,
+          store.outletLatitude,
+          store.outletLongitude,
+          store.outletAccuracy,
+          store.storeStatus,
+          store.description,
+          store.surveyStatus,
+          store.colorStatus,
+          store.otpSent,
+          store.otpVerified,
+          store.otpSentAlternate,
+          store.otpVerifiedAlternate,
+          store.sms,
+          store.tele,
+          store.email,
+          store.createdAt,
+          store.updatedAt,
+          store.source != null ? store.source.toString() : '',
+          store.companyOutletCode != null
+              ? store.companyOutletCode.toString()
+              : '',
+          jsonEncode(store.metaData),
+          store.taxType != null ? store.taxType.toString() : '',
+          store.taxId != null ? store.taxId.toString() : '',
+          store.outletType,
+          store.channel,
+          store.territory,
+          store.beat,
+          store.createdBy,
+          store.updatedBy,
+          '',
+          AppUtils.getSalesman(prefs!),
+          jsonEncode(store.schemes?.map((e) => e.toJson()).toList()),
+          store.metaData != null ? store.metaData!.gstn : '',
+          store.metaData != null ? store.metaData!.license : '',
+          store.metaData != null ? store.metaData!.address : '',
+          store.metaData != null ? store.metaData!.remarks : '');
+      instance.insert(instance.storeDataDetail, detail.toJson());
+
+      //store beat mapping
+      if (store.beats != null && store.beats!.isNotEmpty) {
+        for (StoreBeat beat in store.beats!) {
+          StoreBeatMappingDataDetail beatMappingDataDetail =
+              StoreBeatMappingDataDetail(store.storeId, beat.id, beat.name,
+                  AppUtils.getSalesman(prefs!));
+          instance.insert(instance.storeBeatMappingDataDetail,
+              beatMappingDataDetail.toJson());
+        }
+      }
+
+      //store color mapping
+      if (store.colours != null && store.colours!.isNotEmpty) {
+        for (Colours color in store.colours!) {
+          StoreColorDataDetail detail = StoreColorDataDetail(
+              store.storeId,
+              color.colour,
+              color.beat,
+              color.salesTerritory,
+              color.visitDate,
+              color.bill,
+              color.noBill);
+          instance.insert(instance.storeColorDataDetail, detail.toJson());
+        }
+      }
+
+      //store price mapping
+      if (store.pricings != null && store.pricings!.isNotEmpty) {
+        for (Pricing pricing in store.pricings!) {
+          pricingIds.add(pricing.pricingList!);
+          StorePriceMappingDataDetail detail = StorePriceMappingDataDetail(
+              store.storeId,
+              pricing.scope,
+              pricing.pricingList,
+              pricing.status,
+              AppUtils.getSalesman(prefs!));
+          instance.insert(
+              instance.storePriceMappingDataDetail, detail.toJson());
+        }
+      }
+    }
+
+    fetchPricingList(pricingIds);
+  }
+
+  void fetchPricingList(List<int> pricingIds) async {
+    var pricingService = await AppUtils.requestBuilder(
+        AppUtils.baseUrl +
+            APIServices.getPricingListService(true, true, pricingIds),
+        headers);
+    try {
+      if (pricingService.statusCode == 200) {
+        handlePricingData(pricingService.body);
+      }
+    } catch (e) {
+      getStores();
+      AppUtils.showMessage('pricingService error - ${e.toString()}');
+    }
+  }
+
+  void handlePricingData(String? body) {
+    if (body != null && body.isNotEmpty) {
+      List<dynamic> parsedListJson = jsonDecode(body);
+      List<PricingResponse> pricingList = List<PricingResponse>.from(
+          parsedListJson.map<PricingResponse>(
+              (dynamic i) => PricingResponse.fromJson(i)));
+      if (pricingList.isNotEmpty) {
+        instance.deleteAllData(instance.pricingDataDetail);
+        for (PricingResponse pricing in pricingList) {
+          if (pricing.pricings != null && pricing.pricings!.isNotEmpty) {
+            for (ProductPricingObj ppObj in pricing.pricings!) {
+              PricingDataDetail detail = PricingDataDetail(
+                  pricing.id,
+                  pricing.name,
+                  pricing.code,
+                  pricing.description,
+                  pricing.createdAt,
+                  pricing.updatedAt,
+                  pricing.status,
+                  ppObj.product!.id,
+                  ppObj.mrp,
+                  ppObj.ptr,
+                  ppObj.pts,
+                  ppObj.nrv,
+                  ppObj.isFeatureProduct,
+                  ppObj.status,
+                  AppUtils.getSalesman(prefs!));
+              instance.insert(instance.pricingDataDetail, detail.toJson());
+            }
+          }
+        }
+      }
+    }
+
+    getStores();
+  }
+
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
@@ -418,7 +665,28 @@ class _StoreListing extends State<StoreListing> {
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
-        title: Text(getBeatNames()),
+        title: isSearching
+            ? TextField(
+                style: TextStyle(color: Colors.white, fontSize: 16),
+                onChanged: (text) {
+                  setState(() {
+                    filteredList = text.isNotEmpty
+                        ? sortedList
+                            .where((element) => element.name!
+                                .toLowerCase()
+                                .contains(text.trim().toLowerCase()))
+                            .toList()
+                        : sortedList;
+                  });
+                },
+                decoration: InputDecoration(
+                  border: InputBorder.none,
+                  hintText: AppStrings.search,
+                  hintStyle: TextStyle(
+                      color: Colors.white.withAlpha(120), fontSize: 16),
+                ),
+              )
+            : Text(getBeatNames()),
         leading: InkWell(
           onTap: () {
             Navigator.pop(context);
@@ -429,7 +697,22 @@ class _StoreListing extends State<StoreListing> {
           ),
         ),
         actions: [
-          IconButton(onPressed: () {}, icon: Icon(Icons.filter_list)),
+          IconButton(
+              onPressed: () {
+                setState(() {
+                  if (isSearching) {
+                    setState(() {
+                      filteredList = sortedList;
+                    });
+                  }
+                  isSearching = !isSearching;
+                });
+              },
+              icon: isSearching ? Icon(Icons.cancel) : Icon((Icons.search))),
+          IconButton(
+              onPressed: () => AppUtils.showDialog(context,
+                  UserSelectionDialog(allUsers: allUsers, listUser: listUser)),
+              icon: Icon(Icons.filter_list_alt)),
           PopupMenuButton<int>(
               itemBuilder: (BuildContext context) => <PopupMenuItem<int>>[
                     const PopupMenuItem<int>(
@@ -440,14 +723,25 @@ class _StoreListing extends State<StoreListing> {
                         value: 3, child: Text(AppStrings.refresh)),
                   ],
               onSelected: (int value) {
-                if(stores.isNotEmpty){
-                 switch(value){
-                   case 1:
-                     setState(() {
-                        viewType = viewType=='list'?'map':'list';
-                     });
-                     break;
-                 }
+                if (stores.isNotEmpty) {
+                  switch (value) {
+                    case 1:
+                      setState(() {
+                        viewType = viewType == 'list' ? 'map' : 'list';
+                      });
+                      break;
+                    case 2:
+                      setState(() {
+                        fetchingLocation = true;
+                        positionStream!.cancel();
+                        positionStream = null;
+                        getLocation();
+                      });
+                      break;
+                    case 3:
+                      // setRefreshClick();
+                      break;
+                  }
                 }
               })
         ],
@@ -455,186 +749,202 @@ class _StoreListing extends State<StoreListing> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          location == null
+          fetchingLocation
               ? Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: ColorConstants.color_FF5DC0FF,
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(8),
-              child: Text(
-                AppStrings.waitForCorrectLocation,
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
-            ),
-          )
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: ColorConstants.color_FF5DC0FF,
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.all(8),
+                    child: Text(
+                      AppStrings.waitForCorrectLocation,
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ),
+                )
               : Container(),
           Padding(
             padding:
                 const EdgeInsets.only(left: 16, right: 16, top: 10, bottom: 10),
             child: Text(
-              '${AppStrings.showingResults} : ${sortedList.length}',
+              '${AppStrings.showingResults} : ${filteredList.length}',
               style: const TextStyle(fontSize: 14, color: Colors.grey),
             ),
           ),
           sortedList.isNotEmpty
-              ? viewType=='list'?Expanded(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: sortedList.length,
-                itemBuilder: (BuildContext ctx, int index) {
-                  return Container(
-                    margin: EdgeInsets.only(
-                        left: 16, right: 16, top: 5, bottom: 5),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.all(Radius.circular(8)),
-                      border: Border.all(
-                          color: ColorConstants.color_FFE5E5E5, width: 1),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Expanded(
-                                flex: 3,
-                                child: Text(
-                                  '${AppStrings.storeName}:',
-                                  style: TextStyle(
-                                      color: Colors.grey, fontSize: 12),
-                                )),
-                            Expanded(
-                                flex: 7,
-                                child: Text(
-                                  '${sortedList[index].storeName}',
-                                  style: const TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700),
-                                )),
-                          ],
-                        ),
-                        const SizedBox(
-                          height: 5,
-                        ),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Expanded(
-                                flex: 3,
-                                child: Text(
-                                  '${AppStrings.distance}:',
-                                  style: TextStyle(
-                                      color: Colors.grey, fontSize: 12),
-                                )),
-                            Expanded(
-                                flex: 7,
-                                child: Row(
+              ? viewType == 'list'
+                  ? Expanded(
+                      child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: filteredList.length,
+                      itemBuilder: (BuildContext ctx, int index) {
+                        return InkWell(
+                          child: Container(
+                            margin: EdgeInsets.only(
+                                left: 16, right: 16, top: 5, bottom: 5),
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(8)),
+                              border: Border.all(
+                                  color: ColorConstants.color_FFE5E5E5,
+                                  width: 1),
+                            ),
+                            child: Column(
+                              children: [
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      '${getDistanceValue(sortedList[index].distance!)} ',
-                                      style: const TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w700),
-                                    ),
+                                    const Expanded(
+                                        flex: 3,
+                                        child: Text(
+                                          '${AppStrings.storeName}:',
+                                          style: TextStyle(
+                                              color: Colors.grey, fontSize: 12),
+                                        )),
                                     Expanded(
-                                        child: FutureBuilder(
-                                          initialData: 2,
-                                          future: getVisitDetails(
-                                              sortedList[index].storeId!),
-                                          builder: (BuildContext ctx,
-                                              AsyncSnapshot<int> pos) {
-                                            return Text(
-                                              '\u25CF ${visitTypes[pos.data!]}',
-                                              style: TextStyle(
-                                                  color: visitColors[pos.data!],
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w500),
-                                            );
-                                          },
+                                        flex: 7,
+                                        child: Text(
+                                          '${filteredList[index].storeName}',
+                                          style: const TextStyle(
+                                              color: Colors.black,
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w700),
                                         )),
                                   ],
-                                )),
-                          ],
-                        ),
-                        const SizedBox(
-                          height: 5,
-                        ),
-                        Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: ElevatedButton(
-                                onPressed: () {},
-                                child: Icon(
-                                  Icons.call_outlined,
-                                  color: ColorConstants.colorPrimary,
-                                  size: 24,
                                 ),
-                                style: ButtonStyle(
-                                  shape: MaterialStateProperty.all(
-                                      CircleBorder()),
-                                  padding: MaterialStateProperty.all(
-                                      EdgeInsets.all(5)),
-                                  backgroundColor: MaterialStateProperty.all(
-                                      ColorConstants
-                                          .color_ECE6F6_FF), // <-- Button color
+                                const SizedBox(
+                                  height: 5,
                                 ),
-                              ),
-                            ),
-                            Expanded(
-                                flex: 4,
-                                child: ElevatedButton(
-                                  onPressed: () {},
-                                  child: Text(
-                                    AppStrings.noOrder,
-                                    style: TextStyle(
-                                        color: ColorConstants.colorPrimary,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                    ColorConstants.color_ECE6F6_FF,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(
-                                          20), // <-- Radius
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Expanded(
+                                        flex: 3,
+                                        child: Text(
+                                          '${AppStrings.distance}:',
+                                          style: TextStyle(
+                                              color: Colors.grey, fontSize: 12),
+                                        )),
+                                    Expanded(
+                                        flex: 7,
+                                        child: Row(
+                                          children: [
+                                            Text(
+                                              '${getDistanceValue(filteredList[index].distance!)} ',
+                                              style: const TextStyle(
+                                                  color: Colors.black,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700),
+                                            ),
+                                            Expanded(
+                                                child: FutureBuilder(
+                                              initialData: 2,
+                                              future: getVisitDetails(
+                                                  filteredList[index].storeId!),
+                                              builder: (BuildContext ctx,
+                                                  AsyncSnapshot<int> pos) {
+                                                return Text(
+                                                  '\u25CF ${visitTypes[pos.data!]}',
+                                                  style: TextStyle(
+                                                      color: visitColors[
+                                                          pos.data!],
+                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.w500),
+                                                );
+                                              },
+                                            )),
+                                          ],
+                                        )),
+                                  ],
+                                ),
+                                const SizedBox(
+                                  height: 5,
+                                ),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 2,
+                                      child: ElevatedButton(
+                                        onPressed: () {},
+                                        child: Icon(
+                                          Icons.call_outlined,
+                                          color: ColorConstants.colorPrimary,
+                                          size: 24,
+                                        ),
+                                        style: ButtonStyle(
+                                          shape: MaterialStateProperty.all(
+                                              CircleBorder()),
+                                          padding: MaterialStateProperty.all(
+                                              EdgeInsets.all(5)),
+                                          backgroundColor: MaterialStateProperty
+                                              .all(ColorConstants
+                                                  .color_ECE6F6_FF), // <-- Button color
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                )),
-                            SizedBox(
-                              width: 10,
-                            ),
-                            Expanded(
-                                flex: 4,
-                                child: ElevatedButton(
-                                  onPressed: () {},
-                                  child: Text(
-                                    AppStrings.bookOrder,
-                                    style: TextStyle(
-                                        color: ColorConstants.colorPrimary,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                    ColorConstants.color_ECE6F6_FF,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(
-                                          20), // <-- Radius
+                                    Expanded(
+                                        flex: 4,
+                                        child: ElevatedButton(
+                                          onPressed: () {},
+                                          child: Text(
+                                            AppStrings.noOrder,
+                                            style: TextStyle(
+                                                color:
+                                                    ColorConstants.colorPrimary,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                ColorConstants.color_ECE6F6_FF,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      20), // <-- Radius
+                                            ),
+                                          ),
+                                        )),
+                                    SizedBox(
+                                      width: 10,
                                     ),
-                                  ),
-                                ))
-                          ],
-                        )
-                      ],
-                    ),
-                  );
-                },
-              )):MapStoresComponent(location:location!,stores:sortedList)
+                                    Expanded(
+                                        flex: 4,
+                                        child: ElevatedButton(
+                                          onPressed: () {},
+                                          child: Text(
+                                            AppStrings.bookOrder,
+                                            style: TextStyle(
+                                                color:
+                                                    ColorConstants.colorPrimary,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                ColorConstants.color_ECE6F6_FF,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      20), // <-- Radius
+                                            ),
+                                          ),
+                                        ))
+                                  ],
+                                )
+                              ],
+                            ),
+                          ),
+                          onTap: () {
+                            AppUtils.showBottomDialog(context, true, false, Colors.white, StoreOptionsDialog(store:filteredList[index]));
+                          },
+                        );
+                      },
+                    ))
+                  : MapStoresComponent(
+                      location: location!, stores: filteredList)
               : Expanded(
                   child: Center(
                   child: CircularProgressIndicator(),

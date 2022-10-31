@@ -91,5 +91,17 @@ class AppStrings {
   static const mapListView = 'Map/List View';
   static const sortList = 'Sort List';
   static const refresh = 'Refresh';
+  static const selectUser = 'Select User';
+  static const networkError = 'Please check your internet connection and try again!';
+  static const selectStoreAction = 'Select store action!';
+  static const viewStore = 'View Store';
+  static const billNoOrder = 'Bill No Order';
+  static const task = 'Task';
+  static const callStore = 'Call Store';
+  static const messageStore = 'Message Store';
+  static const navigation = 'Navigation';
+  static const viewImage = 'View Image';
+  static const applyFilters = 'Apply Filters';
+  static const active = 'Active';
 
 }
