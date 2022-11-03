@@ -243,8 +243,8 @@ class SyncHandler {
         
         if(element.employId==prefs.getString("user_id")){
           if(element.isSalesman!){
-            // getProducts(element.id!);
-            // getDiscounts(element.id);
+            getProducts(element.id!);
+            getDiscounts(element.id);
           }else{
             //clear products, discounts
             instance.deleteAllData(instance.productDataDetail);
@@ -265,7 +265,7 @@ class SyncHandler {
         handleProductResponse(products.body,id);
       }
     } catch (e) {
-        AppUtils.showMessage( e.toString());
+        AppUtils.showMessage( 'product error ${e.toString()}');
     }
   }
 

@@ -51,6 +51,7 @@ class AppUtils {
   static showBottomDialog(BuildContext context,bool isDismissable,bool isScrollControlled, Color backgroundColor,view){
     showModalBottomSheet(
         context: context,
+
         isDismissible: isDismissable,
         isScrollControlled: isScrollControlled,
         backgroundColor: backgroundColor,
@@ -174,13 +175,13 @@ class AppUtils {
   }
 
 
-  static String dayOfTheWeek(){
+  static String dayOfTheWeek(DateTime dateSelected){
     const Map<int, String> weekdayName = {1: "MONDAY", 2: "TUESDAY", 3: "WEDNESDAY", 4: "THURSDAY", 5: "FRIDAY", 6: "SATURDAY", 7: "SUNDAY"};
-    return weekdayName[DateTime.now().weekday]!;
+    return weekdayName[dateSelected.weekday]!;
   }
 
-  static int weekOfTheMonth() {
-    String date = DateTime.now().toString();
+  static int weekOfTheMonth(DateTime dateSelected) {
+    String date = dateSelected.toString();
 
 // This will generate the time and date for first day of month
     String firstDay = date.substring(0, 8) + '01' + date.substring(10);
@@ -210,6 +211,17 @@ class AppUtils {
 
   static String getDistance(double p1,double p2,double q1,double q2){
     return Geolocator.distanceBetween(p1, p2, q1, q2).toStringAsFixed(2);
+  }
+
+  static Future<void> showDatePickerDialog(BuildContext context,String selectedDate,Function getDate) async{
+    final DateTime? picked = await showDatePicker(
+        context: context,
+        initialDate: DateFormat('dd/MM/yyyy').parse(selectedDate),
+        firstDate: DateTime(2015, 8),
+        lastDate: DateTime(2101));
+    if (picked != null && picked != selectedDate) {
+      getDate(DateFormat('dd/MM/yyyy').format(picked));
+    }
   }
 
 }

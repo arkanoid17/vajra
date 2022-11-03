@@ -48,6 +48,7 @@ class _StoreListing extends State<StoreListing> {
 
   List<UserHierarchyDataDetail> allUsers = [];
   List<UserSelector> listUser = [];
+  List<UserHierarchyBeat> availableBeats = [];
   List<UserHierarchyBeat> selectedBeats = [];
 
   Position? location;
@@ -136,8 +137,12 @@ class _StoreListing extends State<StoreListing> {
   void getAllUsers() async {
     List<UserHierarchyDataDetail> details = [];
 
+    var cnt = await instance.execQuery(
+        'SELECT COUNT(*) AS cnt FROM ${instance.tableUserHierarchyDataDetail}');
+
     var result = await instance.execQuery(
         'SELECT * FROM ${instance.tableUserHierarchyDataDetail} WHERE ${UserHierarchyDataDetailFields.isActive}=1');
+
     for (var element in result) {
       details.add(UserHierarchyDataDetail(
           element[UserHierarchyDataDetailFields.serverId],
@@ -201,7 +206,8 @@ class _StoreListing extends State<StoreListing> {
             detail.manager,
             detail.createdBy,
             detail.updatedBy,
-            null);
+            null,
+            false);
         selectors.add(selector);
       }
 
@@ -212,35 +218,44 @@ class _StoreListing extends State<StoreListing> {
   }
 
   void selectUserTodayBeat() {
-    List<UserHierarchyBeat> beats = [];
-    for (UserSelector user in listUser) {
-      if (user.id == AppUtils.getSalesman(prefs!)) {
-        beats.addAll(user.beats != null ? user.beats! : []);
-      }
-    }
-    if (beats.isNotEmpty) {
-      int wk = AppUtils.weekOfTheMonth();
-      String dayOfWeek = AppUtils.dayOfTheWeek();
 
-      List<UserHierarchyBeat> todayBeats = [];
-      for (UserHierarchyBeat beat in beats) {
-        if (beat.calendar != null && beat.calendar!.isNotEmpty) {
-          for (HierarchyBeatCalendar calendar in beat.calendar!) {
-            if (calendar.dayName == dayOfWeek && calendar.weekNo == wk) {
-              todayBeats.add(beat);
-              break;
+    if(selectedBeats.isEmpty){
+      List<UserHierarchyBeat> beats = [];
+      for (UserSelector user in listUser) {
+        if (user.id == selectedUser) {
+          beats.addAll(user.beats != null ? user.beats! : []);
+        }
+      }
+      if (beats.isNotEmpty) {
+        int wk =
+        AppUtils.weekOfTheMonth(DateFormat('dd/MM/yyyy').parse(todayDate));
+        String dayOfWeek =
+        AppUtils.dayOfTheWeek(DateFormat('dd/MM/yyyy').parse(todayDate));
+
+        List<UserHierarchyBeat> todayBeats = [];
+        for (UserHierarchyBeat beat in beats) {
+          if (beat.calendar != null && beat.calendar!.isNotEmpty) {
+            for (HierarchyBeatCalendar calendar in beat.calendar!) {
+              if (calendar.dayName == dayOfWeek && calendar.weekNo == wk) {
+                todayBeats.add(beat);
+                break;
+              }
             }
           }
         }
-      }
 
-      if (todayBeats.isNotEmpty) {
-        setState(() {
-          selectedBeats = todayBeats;
-        });
-        filterStores();
+        if (todayBeats.isNotEmpty) {
+          setState(() {
+            selectedBeats = todayBeats;
+          });
+          filterStores();
+        }
       }
+    }else{
+      filterStores();
     }
+
+
   }
 
   void filterStores() async {
@@ -275,7 +290,7 @@ class _StoreListing extends State<StoreListing> {
     List<StoresDataDetail> storeList = [];
 
     var result = await instance.execQuery(
-        'SELECT * FROM ${instance.storeDataDetail} WHERE ${StoresDataDetailFields.salesmanId} = ${AppUtils.getSalesman(prefs!)}');
+        'SELECT * FROM ${instance.storeDataDetail} WHERE ${StoresDataDetailFields.salesmanId} = $selectedUser');
 
     for (var element in result) {
       storeList.add(StoresDataDetail(
@@ -374,6 +389,7 @@ class _StoreListing extends State<StoreListing> {
       AppUtils.getPrefs().then((value) => {
             setState(() {
               prefs = value;
+              selectedUser = AppUtils.getSalesman(value);
               headers = AppUtils.headers(
                   value.getString('tenant_id') != null
                       ? value.getString('tenant_id')!
@@ -382,7 +398,6 @@ class _StoreListing extends State<StoreListing> {
                       ? value.getString('token')!
                       : '');
             }),
-            selectedUser = AppUtils.getSalesman(value),
             getStoreTypes(),
             getLocation(),
           });
@@ -440,55 +455,56 @@ class _StoreListing extends State<StoreListing> {
     return 0;
   }
 
-  void setRefreshClick() {
+  void setRefreshClick() async {
     prefs!.remove('last_store_update');
     if (isSalesMan()) {
-      fetchStores();
+      if (await storesAvailable()) {
+        getStores();
+      } else {
+        fetchStores();
+      }
     } else {
       getStores();
     }
   }
 
   bool isSalesMan() {
-    UserData? user = AppUtils.getUserData(prefs!);
-    if (user != null) {
-      return user.isSalesman!;
-    }
-    return false;
+    return allUsers
+        .where((element) => element.serverId == selectedUser)
+        .first
+        .isSalesman!;
   }
 
   void fetchStores() async {
-    var isConnected = await NetworkConnectivity.isConnected();
-    if (isConnected) {
-      setState(() {
-        sortedList = [];
-        filteredList = [];
-      });
+    // var isConnected = await NetworkConnectivity.isConnected();
+    setState(() {
+      sortedList = [];
+      filteredList = [];
+    });
 
-      var storesService = await AppUtils.requestBuilder(
-          AppUtils.baseUrl +
-              APIServices.getStoreService(AppUtils.getSalesman(prefs!)),
-          headers);
-      try {
-        if (storesService.statusCode == 200) {
-          handleStoresData(storesService.body);
-        }
-      } catch (e) {
-        getStores();
-        AppUtils.showMessage('stores error - ${e.toString()}');
+    var storesService = await AppUtils.requestBuilder(
+        AppUtils.baseUrl + APIServices.getStoreService(selectedUser), headers);
+    try {
+      if (storesService.statusCode == 200) {
+        handleStoresData(storesService.body);
       }
-    } else {
-      AppUtils.showMessage(AppStrings.networkError);
+    } catch (e) {
+      getStores();
+      AppUtils.showMessage('stores error - ${e.toString()}');
     }
   }
 
   void handleStoresData(String? body) {
-    if (body != null && body.isNotEmpty) {
-      StoreResponse storeResponse = StoreResponse.fromJson(jsonDecode(body));
-      if (storeResponse.data != null && storeResponse.data!.isNotEmpty) {
-        saveLastStoreUpdate(storeResponse.lastUpdate);
-        insertStoresData(storeResponse.data);
+    try {
+      if (body != null && body.isNotEmpty) {
+        StoreResponse storeResponse = StoreResponse.fromJson(jsonDecode(body));
+        if (storeResponse.data != null && storeResponse.data!.isNotEmpty) {
+          saveLastStoreUpdate(storeResponse.lastUpdate);
+          insertStoresData(storeResponse.data);
+        }
       }
+    } catch (e) {
+      AppUtils.showMessage('store error- ${e.toString()}');
     }
   }
 
@@ -499,10 +515,13 @@ class _StoreListing extends State<StoreListing> {
   }
 
   void insertStoresData(List<StoreData>? stores) {
-    instance.deleteAllData(instance.storeDataDetail);
-    instance.deleteAllData(instance.storeBeatMappingDataDetail);
+    instance.execQuery(
+        'DELETE FROM ${instance.storeDataDetail} WHERE ${StoresDataDetailFields.salesmanId} = $selectedUser');
+    instance.execQuery(
+        'DELETE FROM ${instance.storeBeatMappingDataDetail} WHERE ${StoreBeatMappingDataDetailFields.salesmanId} = $selectedUser');
     instance.deleteAllData(instance.storeColorDataDetail);
-    instance.deleteAllData(instance.storePriceMappingDataDetail);
+    instance.execQuery(
+        'DELETE FROM ${instance.storePriceMappingDataDetail} WHERE ${StorePriceMappingDataDetailFields.userId} = $selectedUser');
 
     List<int> pricingIds = [];
 
@@ -553,20 +572,21 @@ class _StoreListing extends State<StoreListing> {
           store.createdBy,
           store.updatedBy,
           '',
-          AppUtils.getSalesman(prefs!),
+          selectedUser,
           jsonEncode(store.schemes?.map((e) => e.toJson()).toList()),
           store.metaData != null ? store.metaData!.gstn : '',
           store.metaData != null ? store.metaData!.license : '',
           store.metaData != null ? store.metaData!.address : '',
           store.metaData != null ? store.metaData!.remarks : '');
+
       instance.insert(instance.storeDataDetail, detail.toJson());
 
       //store beat mapping
       if (store.beats != null && store.beats!.isNotEmpty) {
         for (StoreBeat beat in store.beats!) {
           StoreBeatMappingDataDetail beatMappingDataDetail =
-              StoreBeatMappingDataDetail(store.storeId, beat.id, beat.name,
-                  AppUtils.getSalesman(prefs!));
+              StoreBeatMappingDataDetail(
+                  store.storeId, beat.id, beat.name, selectedUser);
           instance.insert(instance.storeBeatMappingDataDetail,
               beatMappingDataDetail.toJson());
         }
@@ -596,7 +616,7 @@ class _StoreListing extends State<StoreListing> {
               pricing.scope,
               pricing.pricingList,
               pricing.status,
-              AppUtils.getSalesman(prefs!));
+              selectedUser);
           instance.insert(
               instance.storePriceMappingDataDetail, detail.toJson());
         }
@@ -614,6 +634,8 @@ class _StoreListing extends State<StoreListing> {
     try {
       if (pricingService.statusCode == 200) {
         handlePricingData(pricingService.body);
+      } else {
+        getStores();
       }
     } catch (e) {
       getStores();
@@ -628,7 +650,11 @@ class _StoreListing extends State<StoreListing> {
           parsedListJson.map<PricingResponse>(
               (dynamic i) => PricingResponse.fromJson(i)));
       if (pricingList.isNotEmpty) {
-        instance.deleteAllData(instance.pricingDataDetail);
+        // instance.deleteAllData(instance.pricingDataDetail);
+
+        instance.execQuery(
+            'DELETE FROM ${instance.pricingDataDetail} WHERE ${PricingDataDetailFields.userId} = $selectedUser');
+
         for (PricingResponse pricing in pricingList) {
           if (pricing.pricings != null && pricing.pricings!.isNotEmpty) {
             for (ProductPricingObj ppObj in pricing.pricings!) {
@@ -647,7 +673,7 @@ class _StoreListing extends State<StoreListing> {
                   ppObj.nrv,
                   ppObj.isFeatureProduct,
                   ppObj.status,
-                  AppUtils.getSalesman(prefs!));
+                  selectedUser);
               instance.insert(instance.pricingDataDetail, detail.toJson());
             }
           }
@@ -710,8 +736,19 @@ class _StoreListing extends State<StoreListing> {
               },
               icon: isSearching ? Icon(Icons.cancel) : Icon((Icons.search))),
           IconButton(
-              onPressed: () => AppUtils.showDialog(context,
-                  UserSelectionDialog(allUsers: allUsers, listUser: listUser)),
+              onPressed: () => AppUtils.showDialog(
+                  context,
+                  UserSelectionDialog(
+                      allUsers: allUsers,
+                      listUser: listUser,
+                      prefs: prefs!,
+                      todayDate: todayDate,
+                      getDate: getDate,
+                      applyFilter: applyFilter,
+                      availableBeats: availableBeats,
+                      selectedBeats: selectedBeats,
+                    selectedUser: selectedUser,
+                  )),
               icon: Icon(Icons.filter_list_alt)),
           PopupMenuButton<int>(
               itemBuilder: (BuildContext context) => <PopupMenuItem<int>>[
@@ -938,7 +975,12 @@ class _StoreListing extends State<StoreListing> {
                             ),
                           ),
                           onTap: () {
-                            AppUtils.showBottomDialog(context, true, false, Colors.white, StoreOptionsDialog(store:filteredList[index]));
+                            AppUtils.showBottomDialog(
+                                context,
+                                true,
+                                false,
+                                Colors.white,
+                                StoreOptionsDialog(store: filteredList[index]));
                           },
                         );
                       },
@@ -954,9 +996,15 @@ class _StoreListing extends State<StoreListing> {
     );
   }
 
+  void getDate(String date) {
+    print(date);
+    setState(() {
+      todayDate = date;
+    });
+  }
+
   @override
   void dispose() {
-    // TODO: implement dispose
     if (positionStream != null) {
       positionStream!.cancel();
     }
@@ -991,5 +1039,28 @@ class _StoreListing extends State<StoreListing> {
           (dynamic i) => UserHierarchyBeat.fromJson(i)));
     }
     return [];
+  }
+
+  void applyFilter(
+      int selectedUser, List<UserHierarchyBeat> available, List<UserHierarchyBeat> selected, String todayDate) {
+    setState(() {
+      this.selectedUser = selectedUser;
+      todayBeatNames = selected.map((e) => e.name!).toList();
+      selectedBeats = selected;
+      availableBeats = available;
+      this.todayDate = todayDate;
+    });
+
+    if (selectedUser == AppUtils.getSalesman(prefs!)) {
+      getStores();
+    } else {
+      setRefreshClick();
+    }
+  }
+
+  Future<bool> storesAvailable() async {
+    var result = await instance.execQuery(
+        'SELECT COUNT(*) AS cnt FROM ${instance.storeDataDetail} WHERE ${StoresDataDetailFields.salesmanId} = $selectedUser');
+    return result[0]['cnt'] > 0;
   }
 }

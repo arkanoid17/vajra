@@ -84,7 +84,7 @@ class ProductDataDetail {
   int? discountValue;
   bool? productStatus;
   int? quantityLimit;
-  String? taxValue;
+  int? taxValue;
   String? pts;
   String? netPrice;
   bool? isFeatureProduct;

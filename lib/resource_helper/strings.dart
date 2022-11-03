@@ -103,5 +103,10 @@ class AppStrings {
   static const viewImage = 'View Image';
   static const applyFilters = 'Apply Filters';
   static const active = 'Active';
+  static const select = 'Select';
+  static const date = 'Date';
+  static const beats = 'Beats';
+  static const save = 'Save';
+  static const apply = 'Apply';
 
 }

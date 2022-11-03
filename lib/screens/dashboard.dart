@@ -1186,6 +1186,7 @@ class _Dashboard extends State<Dashboard> {
         Navigator.pushReplacementNamed(context, '/login');
         break;
       case AppStrings.syncData:
+        prefs!.setBool('if_pull', true);
         SyncHandler(context, prefs!, instance).startSync();
         break;
     }

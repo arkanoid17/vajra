@@ -59,7 +59,9 @@ class APIServices {
       queries = '$queries${getSeperator(queries)}no_page=$noPage';
     }
     if(pricingIds!=null){
-      queries = '$queries${getSeperator(queries)}pricing=$pricingIds';
+      for(int id in pricingIds) {
+        queries = '$queries${getSeperator(queries)}pricing=$id';
+      }
     }
 
     

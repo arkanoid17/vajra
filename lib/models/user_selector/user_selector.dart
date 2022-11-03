@@ -56,13 +56,15 @@ class UserSelector{
   @JsonKey(name: 'updated_by')
   int? updatedBy;
   List<UserSelector>? userSelectors;
+  @JsonKey(name: 'is_selected')
+  bool isSelected;
 
   UserSelector(this.id, this.employName, this.employId, this.locations,
       this.salesmanDistributors, this.beats, this.lastLogin, this.tenantId,
       this.userId, this.name, this.mobileNumber, this.email, this.isExternal,
       this.isActive, this.dateJoined, this.fcmToken, this.createdAt,
       this.updatedAt, this.isSalesman, this.place, this.role, this.manager,
-      this.createdBy, this.updatedBy, this.userSelectors);
+      this.createdBy, this.updatedBy, this.userSelectors,this.isSelected);
 
   factory UserSelector.fromJson(Map<String, dynamic> json) => _$UserSelectorFromJson(json);
 
