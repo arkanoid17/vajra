@@ -39,7 +39,7 @@ class Product {
   @JsonKey(name: 'quantity_limit')
   int? quantityLimit;
   @JsonKey(name: 'tax_value')
-  int? taxValue;
+  Object? taxValue;
   @JsonKey(name: 'pts')
   String? pts;
   @JsonKey(name: 'net_price')

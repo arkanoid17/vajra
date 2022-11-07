@@ -380,7 +380,7 @@ class _UserSelectionDialog extends State<UserSelectionDialog>{
               prd.discountValue,
               prd.productStatus,
               prd.quantityLimit,
-              prd.taxValue,
+              "",//todo add value
               prd.pts,
               prd.netPrice,
               prd.isFeatureProduct,

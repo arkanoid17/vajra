@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:vajra/db/stores_data_detail/stores_data_detail.dart';
 import 'package:vajra/models/user_data/user_data.dart';
 import 'package:vajra/dialogs/user_selection_diaalog.dart';
 import 'package:vajra/services/navigation_service.dart';
@@ -86,6 +87,7 @@ class AppUtils {
       headers['tenant-id'] = tenantId;
     }
     if(token!=""){
+      print('Token $token');
       headers['Authorization'] = "Token $token";
     }
     headers["APP-VERSION"] = version;
@@ -222,6 +224,57 @@ class AppUtils {
     if (picked != null && picked != selectedDate) {
       getDate(DateFormat('dd/MM/yyyy').format(picked));
     }
+  }
+
+  static Future<int> getGeoFenceEval(StoresDataDetail store,SharedPreferences prefs, Position location) async{
+    bool isLocationEnabled = await Geolocator.isLocationServiceEnabled();
+    if(isLocationEnabled){
+      bool storeHasLocation = (store.storeLatitude!=null && store.storeLatitude!.isNotEmpty) && (store.storeLatitude!=null && store.storeLatitude!.isNotEmpty);
+      if(storeHasLocation){
+        var clientAccuracy = AppUtils.getUserData(prefs)!.settings!.gpsAccuracy;
+        var clientGeoRadius = getGeoRadius(prefs);
+        var clientGeofenceOn = AppUtils.getUserData(prefs)!.isGeoRestricted;
+
+        if(validLocation(AppUtils.getDistance(double.parse(
+            store.storeLatitude != null ? store.storeLatitude! : '0.0'),
+            double.parse(
+                store.storeLongitude != null ? store.storeLongitude! : '0.0'),
+            location.latitude,
+            location.longitude
+        ),
+            clientGeoRadius!
+        )){
+          if(location.accuracy<=double.parse(clientAccuracy!)){
+            return 3;
+          }else{
+            if(clientGeofenceOn!){
+              return 4;
+            }else{
+              return 2;
+            }
+          }
+        }else{
+          if(clientGeofenceOn!){
+            return 4;
+          }else{
+            return 2;
+          }
+        }
+      }else{
+        return 2;
+      }
+    }else{
+      return 1;
+    }
+
+  }
+
+  static  bool validLocation(String distance,String clientGeoRadius){
+    return double.parse(distance)<=int.parse(clientGeoRadius);
+  }
+
+  static String getGeoRadius(SharedPreferences prefs){
+    return AppUtils.getUserData(prefs)!.settings!.geoFenceRadius!=null?AppUtils.getUserData(prefs)!.settings!.geoFenceRadius!:'';
   }
 
 }

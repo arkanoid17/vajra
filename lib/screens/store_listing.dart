@@ -14,6 +14,7 @@ import 'package:vajra/db/store_price_mapping_data_detail/store_price_mapping_dat
 import 'package:vajra/db/store_types_data_detail/store_types_data_detail.dart';
 import 'package:vajra/db/stores_data_detail/stores_data_detail.dart';
 import 'package:vajra/db/user_hierarchy_data_detail/user_hierarchy_data_detail.dart';
+import 'package:vajra/dialogs/alert_dialog_display.dart';
 import 'package:vajra/dialogs/store_options.dailog.dart';
 import 'package:vajra/dialogs/user_selection_diaalog.dart';
 import 'package:vajra/models/pricing_data/pricing_response.dart';
@@ -37,6 +38,8 @@ import 'package:vajra/utils/app_utils.dart';
 import 'package:vajra/utils/network_connectivity.dart';
 
 class StoreListing extends StatefulWidget {
+
+
   const StoreListing({super.key});
 
   @override
@@ -85,6 +88,8 @@ class _StoreListing extends State<StoreListing> {
   bool isSearching = false;
 
   Map<String, String> headers = {};
+
+  int selectedIndex = -1;
 
   void getLocation() {
     final LocationSettings locationSettings = LocationSettings(
@@ -353,6 +358,9 @@ class _StoreListing extends State<StoreListing> {
   void updateDistance() {
     List<StoresDataDetail> storeList = stores;
     int pos = -1;
+
+    print(location!.latitude);
+    print(location!.longitude);
 
     for (StoresDataDetail store in stores) {
       ++pos;
@@ -950,7 +958,12 @@ class _StoreListing extends State<StoreListing> {
                                     Expanded(
                                         flex: 4,
                                         child: ElevatedButton(
-                                          onPressed: () {},
+                                          onPressed: () {
+                                            setState(() {
+                                              selectedIndex = index;
+                                            });
+                                            navigateToOrderPage(filteredList[index]);
+                                          },
                                           child: Text(
                                             AppStrings.bookOrder,
                                             style: TextStyle(
@@ -1063,4 +1076,66 @@ class _StoreListing extends State<StoreListing> {
         'SELECT COUNT(*) AS cnt FROM ${instance.storeDataDetail} WHERE ${StoresDataDetailFields.salesmanId} = $selectedUser');
     return result[0]['cnt'] > 0;
   }
+
+  void navigateToOrderPage(StoresDataDetail store) async{
+    int option = await AppUtils.getGeoFenceEval(store, prefs!, location!);
+    print(option);
+    switch(option){
+      case 1:
+        AppUtils.showMessage(AppStrings.gpsTurnON);
+        break;
+      case 2:
+        // do a non geo fence order
+        AppUtils.showDialog(
+            context,
+            AlertDialogDisplay(
+              title: AppStrings.appName,
+              content: AppStrings.cannotOrderFromStore.replaceAll('~~%%', AppUtils.getGeoRadius(prefs!))+'\n\n${AppStrings.locationAccuracy}: ${location!.accuracy}',
+              buttonText: AppStrings.okay,
+              action: goToOrder,
+            )
+        );
+        break;
+      case 3:
+        // geo fence order
+        break;
+      case 4:
+      // Far from store
+        AppUtils.showDialog(
+            context,
+            AlertDialogDisplay(
+                title: AppStrings.appName,
+                content: AppStrings.cannotOrderFromStore.replaceAll('~~%%', AppUtils.getGeoRadius(prefs!))+'\n\n${AppStrings.locationAccuracy}: ${location!.accuracy}',
+                buttonText: AppStrings.close,
+                action: (){
+                  setState(() {
+                    selectedIndex = -1;
+                  });
+                },
+            )
+        );
+        break;
+    }
+  }
+
+    goToOrder(BuildContext ctx) {
+    print('yes');
+    Navigator.pushNamed(
+        ctx,
+        '/book-order',
+        arguments: {
+          'store': filteredList[selectedIndex!=-1?selectedIndex:0],
+          'selectedUser': selectedUser,
+        }
+    );
+    setState(() {
+      selectedIndex = -1;
+    });
+  }
+
+
+
+
+
 }
+

@@ -23,7 +23,7 @@ Product _$ProductFromJson(Map<String, dynamic> json) => Product(
       json['discount_value'] as int?,
       json['product_status'] as bool?,
       json['quantity_limit'] as int?,
-      json['tax_value'] as int?,
+      json['tax_value'] as Object?,
       json['pts'] as String?,
       json['net_price'] as String?,
       json['is_feature_product'] as bool?,

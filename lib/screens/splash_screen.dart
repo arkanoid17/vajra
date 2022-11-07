@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -29,19 +30,34 @@ class _SplashScreen extends State<SplashScreen> {
   }
 
   void checkPermissions() async{
-    Map<Permission, PermissionStatus> statuses = await [
-      Permission.location,
-      Permission.storage,
-      //add more permission to request here.
-    ].request();
+    if(Platform.isAndroid){
+      Map<Permission, PermissionStatus> statuses = await [
+        Permission.location,
+        Permission.storage,
+        //add more permission to request here.
+      ].request();
 
 
-    if(statuses[Permission.location] == PermissionStatus.granted && statuses[Permission.storage] == PermissionStatus.granted){
-      splashTimer();
+      if(statuses[Permission.location] == PermissionStatus.granted && statuses[Permission.storage] == PermissionStatus.granted){
+        splashTimer();
+      }else{
+        Permission.location.request();
+        AppUtils.showMessage( "Please grant all permissions");
+        // checkPermissions();
+      }
     }else{
-      Permission.location.request();
-      AppUtils.showMessage( "Please grant all permissions");
-      // checkPermissions();
+      var locationStatus = await Permission.locationWhenInUse.request();
+      if(locationStatus.isGranted){
+        var storageStatus = await Permission.storage.request();
+        if(storageStatus.isGranted) {
+          splashTimer();
+        }else{
+          AppUtils.showMessage( "Please grant all permissions");
+        }
+      } else{
+        AppUtils.showMessage( "Please grant all permissions");
+      }
+
     }
   }
 

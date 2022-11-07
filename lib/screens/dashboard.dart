@@ -183,15 +183,14 @@ class _Dashboard extends State<Dashboard> {
               for (var element in value)
                 {
                   setState(() {
-                    thisMonthNrv = element[UserStatsDataDetailFields.monthNrv];
-                    todayNrv = element[UserStatsDataDetailFields.todayNrv];
-                    thisMonthBills =
-                        element[UserStatsDataDetailFields.monthBilled];
-                    thisMonthNoBills =
-                        element[UserStatsDataDetailFields.monthUnbilled];
-                    todayBills = element[UserStatsDataDetailFields.todayBilled];
+                    thisMonthNrv = element[UserStatsDataDetailFields.monthNrv] ?? 0;
+                    todayNrv = element[UserStatsDataDetailFields.todayNrv] ?? 0;
+                    thisMonthBills = element[UserStatsDataDetailFields.monthBilled] ?? 0;
+                      thisMonthNoBills =
+                        element[UserStatsDataDetailFields.monthUnbilled] ?? 0;
+                    todayBills = element[UserStatsDataDetailFields.todayBilled] ?? 0;
                     todayNoBills =
-                        element[UserStatsDataDetailFields.todayUnbilled];
+                        element[UserStatsDataDetailFields.todayUnbilled] ?? 0;
                   })
                 }
             });

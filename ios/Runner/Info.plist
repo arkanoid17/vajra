@@ -48,5 +48,10 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Location permission required!</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Storage permission required!</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Storage permission required!</string>
 </dict>
 </plist>

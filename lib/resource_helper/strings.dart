@@ -108,5 +108,10 @@ class AppStrings {
   static const beats = 'Beats';
   static const save = 'Save';
   static const apply = 'Apply';
+  static const close = 'Close';
+  static const okay = 'Okay';
+  static const locationAccuracy = 'Location Accuracy';
+  static const cannotOrderFromStore = 'Can not order as user is ~~%% m away from store.';
+  static const farFromStore = 'Order will not be counted as user is ~~%% m away from store.';
 
 }

@@ -293,7 +293,7 @@ class SyncHandler {
               prd.discountValue,
               prd.productStatus,
               prd.quantityLimit,
-              prd.taxValue,
+              "",//todo: add value
               prd.pts,
               prd.netPrice,
               prd.isFeatureProduct,
