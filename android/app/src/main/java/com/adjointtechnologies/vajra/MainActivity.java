@@ -1,4 +1,4 @@
-package com.example.vajra;
+package com.adjointtechnologies.vajra;
 
 import io.flutter.embedding.android.FlutterActivity;
 

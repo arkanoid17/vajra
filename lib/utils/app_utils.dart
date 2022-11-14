@@ -11,10 +11,15 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:vajra/db/database_helper.dart';
+import 'package:vajra/db/product_distributor_type_data_detail/product_distributor_type_data_detail.dart';
 import 'package:vajra/db/stores_data_detail/stores_data_detail.dart';
 import 'package:vajra/models/user_data/user_data.dart';
 import 'package:vajra/dialogs/user_selection_diaalog.dart';
+import 'package:vajra/models/user_hierarchy/distributor_types.dart';
 import 'package:vajra/services/navigation_service.dart';
+
+import '../models/product/pack.dart';
 
 class AppUtils {
   static const int splashTimeout = 3 * 1000; //3000 milisecond is 3 seconds
@@ -242,7 +247,7 @@ class AppUtils {
             location.latitude,
             location.longitude
         ),
-            clientGeoRadius!
+            clientGeoRadius
         )){
           if(location.accuracy<=double.parse(clientAccuracy!)){
             return 3;
@@ -276,5 +281,43 @@ class AppUtils {
   static String getGeoRadius(SharedPreferences prefs){
     return AppUtils.getUserData(prefs)!.settings!.geoFenceRadius!=null?AppUtils.getUserData(prefs)!.settings!.geoFenceRadius!:'';
   }
+
+  static String getNowDateAndTime(){
+    DateFormat df = DateFormat('dd-MM-yyyy HH:mm:ss');
+    return df.format(DateTime.now());
+  }
+
+  static Pack getSelectedPack(String? packs) {
+    if(packs!=null){
+      List<dynamic> parsedListJson = jsonDecode(packs);
+      List<Pack> productPacks = List<Pack>.from(parsedListJson.map<Pack>((dynamic i) => Pack.fromJson(i)));
+      for(Pack pack in productPacks){
+        if(pack.isSelected!) {
+          return pack;
+        }
+      }
+    }
+    return Pack(0, '', 'units', 'units', 1, true, AppUtils.getNowDateAndTime(), AppUtils.getNowDateAndTime(), 0, true);
+  }
+
+  static Future<List<ProductDataDistributorTypeDataDetail>> getDistributorTypes(int productId,DatabaseHelper instance) async {
+
+    List<ProductDataDistributorTypeDataDetail> distTypes = [];
+
+    var types = await instance.execQuery('SELECT * FROM ${instance.productDataDistributorTypeDataDetail} WHERE ${ProductDataDistributorTypeDataDetailFields.productId} = $productId');
+
+    for(var type in types){
+      distTypes.add(ProductDataDistributorTypeDataDetail(type['productId'], type['salesmanId'], type['distributorTypeId'], type['distributorTypeName']));
+    }
+
+    return distTypes;
+  }
+
+  static var schemes = {
+    'flat':1,
+    'percentage':2,
+    'qps':3,
+    'visibility':4
+  };
 
 }

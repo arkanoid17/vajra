@@ -31,6 +31,7 @@ class ProductDataFields {
   static const String salesmanId = 'salesmanId';
   static const String brand = 'brand';
   static const String schemeId = 'schemeId';
+  static const String schemeCount = 'schemeCount';
 }
 
 class ProductDataDetail {
@@ -65,7 +66,9 @@ class ProductDataDetail {
       this.image,
       this.salesmanId,
       this.brand,
-      this.schemeId);
+      this.schemeId,
+      this.schemeCount
+      );
 
   int? id;
   String? productName;
@@ -99,6 +102,7 @@ class ProductDataDetail {
   int? salesmanId;
   String? brand;
   int? schemeId;
+  int? schemeCount;
 
   Map<String, Object?> toJson() => {
         ProductDataFields.id: id,
@@ -132,6 +136,42 @@ class ProductDataDetail {
         ProductDataFields.image: image,
         ProductDataFields.salesmanId: salesmanId,
         ProductDataFields.brand: brand,
-        ProductDataFields.schemeId: schemeId
+        ProductDataFields.schemeId: schemeId,
+        ProductDataFields.schemeCount: schemeCount,
       };
+
+  factory ProductDataDetail.fromJson(Map<dynamic, dynamic> json) =>
+      ProductDataDetail(
+          json['productName'],
+          json['productId'],
+          json['barcodeNumber'],
+          json['hsnNumber'],
+          json['description'],
+          json['manufacturer'],
+          json['productCategory'],
+          json['scope'],
+          json['mrp'],
+          json['nrv'],
+          json['ptr'],
+          json['taxType'],
+          json['isQps']==1,
+          json['discountValue'],
+          json['productStatus']==1,
+          json['quantityLimit'],
+          json['taxValue'],
+          json['pts'],
+          json['netPrice'],
+          json['isFeatureProduct']==1,
+          json['packs'],
+          json['pricingId'],
+          json['pricingNodeId'],
+          json['queryNodeId'],
+          json['channel'],
+          json['count'],
+          json['packCount'],
+          json['image'],
+          json['salesmanId'],
+          json['brand'],
+          json['schemeId'],
+          json['schemeCount']);
 }

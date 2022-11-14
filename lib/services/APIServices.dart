@@ -17,6 +17,27 @@ class APIServices {
   static const String storeService = 'salesman/territory_stores/';
   static const String pricingListService = 'portal/api/pricing-list/';
   static const String salesHistoryService = 'portal/api/sales/history/';
+  static const String nearbyStoreService = 'salesman/nearby_stores/';
+
+  static String getNearbyStoresService(double? latitude,double? longitude,int? limit,int? radius){
+    String path = nearbyStoreService;
+    String queries = '';
+
+    if(latitude!=null){
+      queries = '$queries${getSeperator(queries)}latitude=$latitude';
+    }
+    if(longitude!=null){
+      queries = '$queries${getSeperator(queries)}longitude=$longitude';
+    }
+    if(limit!=null){
+      queries = '$queries${getSeperator(queries)}limit=$limit';
+    }
+    if(radius!=null){
+      queries = '$queries${getSeperator(queries)}radius=$radius';
+    }
+
+    return '$path$queries';
+  }
 
   static String getSalesHistoryService(String? series,String? fromDate,String? toDate,String? salesman,String? includeFields1,String? includeFields2,String? includeFields3){
     String path = salesHistoryService;
@@ -42,9 +63,6 @@ class APIServices {
     if(includeFields3!=null){
       queries = '$queries${getSeperator(queries)}include_fields=$includeFields3';
     }
-    
-
-    print('queries - $queries');
 
     return '$path$queries';
   }

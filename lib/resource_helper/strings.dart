@@ -113,5 +113,19 @@ class AppStrings {
   static const locationAccuracy = 'Location Accuracy';
   static const cannotOrderFromStore = 'Can not order as user is ~~%% m away from store.';
   static const farFromStore = 'Order will not be counted as user is ~~%% m away from store.';
+  static const packs = 'Packs';
+  static const mrp = 'MRP';
+  static const add = 'Add';
+  static const schemesAvailable = 'Schemes Available';
+  static const itemsHaveBeenAddedToCart = 'items have been added to cart.';
+  static const schemes = 'Schemes';
+  static const cart = 'Cart';
+  static const featured = 'Featured';
+  static const nearbyStores = 'Nearby Stores';
+  static const pleaseWaitWhileWeFetchLocation = 'Please wait while we fetch your location!';
+  static const noNearbyStores = 'No nearby stores!';
+  static const owner = 'Owner';
+  static const addToMyBeats = 'Add to my beats';
+  static const addNewStore = 'Add new store';
 
 }

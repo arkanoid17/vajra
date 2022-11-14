@@ -16,6 +16,7 @@ import 'package:vajra/db/pending_task_data_detail/pending_task_data_detail.dart'
 import 'package:vajra/db/places_data_detail/places_data_detail.dart';
 import 'package:vajra/db/pricing_data_detail/pricing_data_detail.dart';
 import 'package:vajra/db/product_data_detail/product_data_detail.dart';
+import 'package:vajra/db/product_distributor_type_data_detail/product_distributor_type_data_detail.dart';
 import 'package:vajra/db/reasons_data_detail/reasons_data_detail.dart';
 import 'package:vajra/db/schemes_data_detail/schemes_data_detail.dart';
 import 'package:vajra/db/store_beat_mapping_data_detail/store_beat_mapping_data_detail.dart';
@@ -28,6 +29,7 @@ import 'package:vajra/db/user_stats_data_detail/user_stats_data_detail.dart';
 import 'package:vajra/models/activity_data/activity_data.dart';
 import 'package:vajra/models/channel_data/channel_response.dart';
 import 'package:vajra/models/common_schemes/common_schemes.dart';
+import 'package:vajra/models/common_schemes/scheme_products.dart';
 import 'package:vajra/models/form_actions/form_actions_data.dart';
 import 'package:vajra/models/pending_tasks_data/form.dart';
 import 'package:vajra/models/pending_tasks_data/pending_task.dart';
@@ -46,6 +48,7 @@ import 'package:vajra/models/stores_data/store_beat.dart';
 import 'package:vajra/models/stores_data/store_data.dart';
 import 'package:vajra/models/stores_data/store_response.dart';
 import 'package:vajra/models/user_data/user_data.dart';
+import 'package:vajra/models/user_hierarchy/distributor_types.dart';
 import 'package:vajra/models/user_hierarchy/user_hierarchy.dart';
 import 'package:vajra/models/user_stats_data/user_stats_data.dart';
 import 'package:vajra/resource_helper/strings.dart';
@@ -56,10 +59,9 @@ import 'package:vajra/utils/network_connectivity.dart';
 import '../models/channel_data/channel_obj.dart';
 import '../models/place_data/place_response.dart';
 import '../models/place_data/places.dart';
-
+import '../models/product/product.dart';
 
 class SyncHandler {
-
   BuildContext context;
   SharedPreferences prefs;
   DatabaseHelper instance;
@@ -67,10 +69,10 @@ class SyncHandler {
   SyncHandler(this.context, this.prefs, this.instance);
 
   // bool isConnected = false;
-  Map<String,String> headers = {};
+  Map<String, String> headers = {};
 
-  Map<String,bool> servicesToBeCalled = {};
-  Map<String,bool> servicesFinished = {};
+  Map<String, bool> servicesToBeCalled = {};
+  Map<String, bool> servicesFinished = {};
 
   List<String> serviceNames = [
     'userHierarchy',
@@ -86,21 +88,20 @@ class SyncHandler {
     'storesService'
   ];
 
-
   void startSync() {
-
     fetchHeaders();
 
-    if (!AppUtils.isSyncGoingOn){
+    if (!AppUtils.isSyncGoingOn) {
       checkServerData();
     }
   }
 
-  void fetchHeaders(){
+  void fetchHeaders() {
     headers = AppUtils.headers(
-        prefs.getString('tenant_id')!=null?prefs.getString('tenant_id')!:'',
-        prefs.getString('token')!=null?prefs.getString('token')!:''
-    );
+        prefs.getString('tenant_id') != null
+            ? prefs.getString('tenant_id')!
+            : '',
+        prefs.getString('token') != null ? prefs.getString('token')! : '');
   }
 
   void checkServerData() {
@@ -116,7 +117,6 @@ class SyncHandler {
       isTime = true;
     }
 
-
     if (isTime && isPull) {
       AppUtils.isSyncGoingOn = true;
       sendBroadcastToDashboard("Start");
@@ -129,30 +129,27 @@ class SyncHandler {
   bool getIsTime() {
     var formatter = DateFormat('dd/MM/yyyy hh:mm a');
 
-    if(prefs.containsKey(AppStrings.fetchTime)){
+    if (prefs.containsKey(AppStrings.fetchTime)) {
       String syncTime = prefs.getString(AppStrings.fetchTime)!;
       var dateNow = DateTime.now();
 
-      if(syncTime.isNotEmpty) {
+      if (syncTime.isNotEmpty) {
         var dateSync = formatter.parse(syncTime);
         return dateNow.difference(dateSync).inHours >= AppUtils.syncInterval;
       }
-
     }
     return true;
   }
 
-  void getServiceCounts(){
+  void getServiceCounts() {
     serviceNames.forEach((element) {
       servicesToBeCalled.putIfAbsent(element, () => false);
     });
-
-
   }
 
   void loadServerData() {
-      getServiceCounts();
-      fetchUserData();
+    getServiceCounts();
+    fetchUserData();
   }
 
   Future<void> fetchUserData() async {
@@ -170,13 +167,12 @@ class SyncHandler {
             handleUserDataResponse(userData.body);
             servicesFinished.putIfAbsent('userData', () => true);
             handleSyncCompletion();
-            if (AppUtils.getUserData(prefs)!=null) {
+            if (AppUtils.getUserData(prefs) != null) {
               callOtherServices();
             } else {
               AppUtils.isSyncGoingOn = false;
               sendBroadcastToDashboard(AppStrings.key_initiali_fail);
             }
-
           } else {
             servicesFinished.putIfAbsent('userData', () => false);
             handleSyncCompletion();
@@ -200,12 +196,11 @@ class SyncHandler {
   }
 
   void handleHierarchyResponse(String body) {
-
     List<dynamic> parsedListJson = jsonDecode(body);
-    List<UserHierarchy> itemsList = List<UserHierarchy>.from(parsedListJson.map<UserHierarchy>((dynamic i) => UserHierarchy.fromJson(i)));
+    List<UserHierarchy> itemsList = List<UserHierarchy>.from(parsedListJson
+        .map<UserHierarchy>((dynamic i) => UserHierarchy.fromJson(i)));
 
-    if(itemsList.isNotEmpty){
-
+    if (itemsList.isNotEmpty) {
       instance.deleteAllData(instance.tableUserHierarchyDataDetail);
 
       for (var element in itemsList) {
@@ -214,7 +209,8 @@ class SyncHandler {
             element.employName,
             element.employId,
             jsonEncode(element.locations?.map((e) => e.toJson()).toList()),
-            jsonEncode(element.salesmanDistributors?.map((e) => e.toJson()).toList()),
+            jsonEncode(
+                element.salesmanDistributors?.map((e) => e.toJson()).toList()),
             jsonEncode(element.beats?.map((e) => e.toJson()).toList()),
             element.lastLogin,
             element.tenantId,
@@ -234,48 +230,48 @@ class SyncHandler {
             element.role,
             element.manager,
             element.createdBy,
-            element.updatedBy
-        );
+            element.updatedBy);
 
-        Map<String,dynamic> mapHierarchy = detail.toJson();
+        Map<String, dynamic> mapHierarchy = detail.toJson();
 
         instance.insert(instance.tableUserHierarchyDataDetail, mapHierarchy);
-        
-        if(element.employId==prefs.getString("user_id")){
-          if(element.isSalesman!){
+
+        if (element.employId == prefs.getString("user_id")) {
+          if (element.isSalesman!) {
             getProducts(element.id!);
             getDiscounts(element.id);
-          }else{
+          } else {
             //clear products, discounts
             instance.deleteAllData(instance.productDataDetail);
             instance.deleteAllData(instance.schemesDataDetail);
           }
         }
-        
       }
     }
-
   }
 
-  void getProducts(int id) async{
+  void getProducts(int id) async {
     String url = '${AppUtils.baseUrl}${APIServices.products}?salesman_id=$id';
     var products = await AppUtils.requestBuilder(url, headers);
     try {
       if (products.statusCode == 200) {
-        handleProductResponse(products.body,id);
+        handleProductResponse(products.body, id);
       }
     } catch (e) {
-        AppUtils.showMessage( 'product error ${e.toString()}');
+      AppUtils.showMessage('product error ${e.toString()}');
     }
   }
 
-  void handleProductResponse(String body,int id){
-   if(body.isNotEmpty){
-     ProductResponse productResponse = ProductResponse.fromJson(jsonDecode(body));
-     if(productResponse.data != null){
-       instance.deleteAllData(instance.productDataDetail);
-       ProductDataDetail product;
-        productResponse.data?.map((prd) => {
+  void handleProductResponse(String body, int id) async {
+    if (body.isNotEmpty) {
+      ProductResponse productResponse =
+          ProductResponse.fromJson(jsonDecode(body));
+
+      if (productResponse.data != null && productResponse.data!.isNotEmpty) {
+        instance.deleteAllData(instance.productDataDetail);
+        ProductDataDetail product;
+        int isInserted;
+        for (Product prd in productResponse.data!) {
           product = ProductDataDetail(
               prd.productName,
               prd.productId,
@@ -293,7 +289,8 @@ class SyncHandler {
               prd.discountValue,
               prd.productStatus,
               prd.quantityLimit,
-              "",//todo: add value
+              "",
+              //todo: add value
               prd.pts,
               prd.netPrice,
               prd.isFeatureProduct,
@@ -307,56 +304,81 @@ class SyncHandler {
               prd.image,
               id,
               jsonEncode(prd.brand),
-              0
-          ),
-          instance.insert(instance.productDataDetail, product.toJson()),
-        });
-     }
-   }
+              0,
+              0);
+          isInserted = await instance.insert(instance.productDataDetail, product.toJson());
+          if(prd.distributorTypes!=null && prd.distributorTypes!.isNotEmpty){
+            for(DistributorTypes type in prd.distributorTypes!){
+              ProductDataDistributorTypeDataDetail detail = ProductDataDistributorTypeDataDetail(prd.productId, AppUtils.getSalesman(prefs), type.id, type.name);
+              instance.insert(instance.productDataDistributorTypeDataDetail, detail.toJson());
+            }
+          }
+        }
+      }
+    }
   }
 
-  void getDiscounts(int? id) async{
+  void getDiscounts(int? id) async {
     bool noPage = true;
-    String url = '${AppUtils.baseUrl}${APIServices.schemeServices}?no_page=$noPage';
+    String url =
+        '${AppUtils.baseUrl}${APIServices.schemeServices}?no_page=$noPage';
 
     var schemes = await AppUtils.requestBuilder(url, headers);
     try {
       if (schemes.statusCode == 200) {
-        handleSchemeResponse(schemes.body,id!);
+        handleSchemeResponse(schemes.body, id!);
       }
     } catch (e) {
       AppUtils.showMessage(e.toString());
     }
   }
 
-  void handleSchemeResponse(String body, int id){
-    if(body.isNotEmpty){
-
+  void handleSchemeResponse(String body, int id) async{
+    if (body.isNotEmpty) {
       instance.deleteAllData(instance.schemesDataDetail);
 
       List<dynamic> parsedListJson = jsonDecode(body);
-      List<CommonSchemes> schemes = List<CommonSchemes>.from(parsedListJson.map<CommonSchemes>((dynamic i) => CommonSchemes.fromJson(i)));
-      if(schemes.isNotEmpty){
+      List<CommonSchemes> schemes = List<CommonSchemes>.from(parsedListJson
+          .map<CommonSchemes>((dynamic i) => CommonSchemes.fromJson(i)));
+      if (schemes.isNotEmpty) {
         SchemesDataDetail detail;
-        schemes.map((scheme) => {
-           if(scheme.products !=null){
-             scheme.products?.map((schemeProduct) => {
-               detail = SchemesDataDetail(scheme.id, schemeProduct.product!.id , scheme.name, schemeProduct.product!.name, schemeProduct.minQty, scheme.tenure, double.parse(scheme.schemeValue!), scheme.schemeType!.name, scheme.startDate, scheme.endDate, schemeProduct.isFree, scheme.description, scheme.schemeType!.id, scheme.schemeType!.name, id),
-               instance.insert(instance.schemesDataDetail, detail.toJson()),
-             }),
-           }
-        });
-      }
+        for (CommonSchemes scheme in schemes) {
+          if (scheme.products != null) {
+            for (SchemeProducts schemeProduct in scheme.products!) {
+              detail = SchemesDataDetail(
+                  scheme.id,
+                  schemeProduct.product!.id,
+                  scheme.name,
+                  schemeProduct.product!.name,
+                  schemeProduct.minQty,
+                  scheme.tenure,
+                  double.parse(scheme.schemeValue!),
+                  scheme.schemeType!.name,
+                  scheme.startDate,
+                  scheme.endDate,
+                  schemeProduct.isFree,
+                  scheme.description,
+                  scheme.schemeType!.id,
+                  scheme.schemeType!.name,
+                  id);
+                  await instance.insert(instance.schemesDataDetail, detail.toJson());
+            }
+          }
+        }
+        }
     }
   }
 
-  void callOtherServices() async{
-    if(prefs.containsKey('last_store_update')){
+  void callOtherServices() async {
+    if (prefs.containsKey('last_store_update')) {
       prefs.remove('last_store_update');
     }
 
     //channel service
-    var channelsService = await AppUtils.requestBuilder(AppUtils.baseUrl + APIServices.getChannelServices(null, null, null, null), headers);
+    var channelsService = await AppUtils.requestBuilder(
+        AppUtils.baseUrl +
+            APIServices.getChannelServices(null, null, null, null),
+        headers);
     try {
       if (channelsService.statusCode == 200) {
         handleChannelResponse(channelsService.body);
@@ -370,7 +392,8 @@ class SyncHandler {
     }
 
     //place service
-    var placeService = await AppUtils.requestBuilder(AppUtils.baseUrl + APIServices.placeServices, headers);
+    var placeService = await AppUtils.requestBuilder(
+        AppUtils.baseUrl + APIServices.placeServices, headers);
     try {
       if (placeService.statusCode == 200) {
         handlePlaceService(placeService.body);
@@ -382,9 +405,11 @@ class SyncHandler {
       handleSyncCompletion();
       AppUtils.showMessage('place error - ${e.toString()}');
     }
-    
+
     //task service
-    var taskService = await AppUtils.requestBuilder(AppUtils.baseUrl + APIServices.getTaskService(null, 1, null, true), headers);
+    var taskService = await AppUtils.requestBuilder(
+        AppUtils.baseUrl + APIServices.getTaskService(null, 1, null, true),
+        headers);
     try {
       if (taskService.statusCode == 200) {
         handleTaskService(taskService.body);
@@ -398,7 +423,8 @@ class SyncHandler {
     }
 
     //activity service
-    var activityService = await AppUtils.requestBuilder(AppUtils.baseUrl + APIServices.activityService, headers);
+    var activityService = await AppUtils.requestBuilder(
+        AppUtils.baseUrl + APIServices.activityService, headers);
     try {
       if (activityService.statusCode == 200) {
         handleActivities(activityService.body);
@@ -412,7 +438,8 @@ class SyncHandler {
     }
 
     //user stats service
-    var userStatsService = await AppUtils.requestBuilder(AppUtils.baseUrl + APIServices.userStatsService, headers);
+    var userStatsService = await AppUtils.requestBuilder(
+        AppUtils.baseUrl + APIServices.userStatsService, headers);
     try {
       if (userStatsService.statusCode == 200) {
         handleUserStats(userStatsService.body);
@@ -426,7 +453,8 @@ class SyncHandler {
     }
 
     //store type service
-    var storeTypeService = await AppUtils.requestBuilder(AppUtils.baseUrl + APIServices.storeTypesService, headers);
+    var storeTypeService = await AppUtils.requestBuilder(
+        AppUtils.baseUrl + APIServices.storeTypesService, headers);
     try {
       if (storeTypeService.statusCode == 200) {
         handleStoreTypes(storeTypeService.body);
@@ -440,7 +468,8 @@ class SyncHandler {
     }
 
     //dynamic user actions service
-    var dynamicUserActions = await AppUtils.requestBuilder(AppUtils.baseUrl + APIServices.dynamicUserActionsService, headers);
+    var dynamicUserActions = await AppUtils.requestBuilder(
+        AppUtils.baseUrl + APIServices.dynamicUserActionsService, headers);
     try {
       if (dynamicUserActions.statusCode == 200) {
         handleDynamicUserActions(dynamicUserActions.body);
@@ -454,7 +483,8 @@ class SyncHandler {
     }
 
     //dynamic user action list service
-    var dynamicUserActionList = await AppUtils.requestBuilder(AppUtils.baseUrl + APIServices.dynamicActionListService, headers);
+    var dynamicUserActionList = await AppUtils.requestBuilder(
+        AppUtils.baseUrl + APIServices.dynamicActionListService, headers);
     try {
       if (dynamicUserActionList.statusCode == 200) {
         handleDynamicUserActionList(dynamicUserActionList.body);
@@ -468,7 +498,8 @@ class SyncHandler {
     }
 
     //reasons service
-    var reasonService = await AppUtils.requestBuilder(AppUtils.baseUrl + APIServices.getReasonsService(null), headers);
+    var reasonService = await AppUtils.requestBuilder(
+        AppUtils.baseUrl + APIServices.getReasonsService(null), headers);
     try {
       if (reasonService.statusCode == 200) {
         handleReasonsData(reasonService.body);
@@ -482,7 +513,10 @@ class SyncHandler {
     }
 
     //stores service
-    var storesService = await AppUtils.requestBuilder(AppUtils.baseUrl + APIServices.getStoreService(AppUtils.getSalesman(prefs)), headers);
+    var storesService = await AppUtils.requestBuilder(
+        AppUtils.baseUrl +
+            APIServices.getStoreService(AppUtils.getSalesman(prefs)),
+        headers);
     try {
       if (storesService.statusCode == 200) {
         handleStoresData(storesService.body);
@@ -494,20 +528,19 @@ class SyncHandler {
       handleSyncCompletion();
       AppUtils.showMessage('stores error - ${e.toString()}');
     }
-
   }
 
-  void handleStoresData(String? body){
-    if(body!=null && body.isNotEmpty){
+  void handleStoresData(String? body) {
+    if (body != null && body.isNotEmpty) {
       StoreResponse storeResponse = StoreResponse.fromJson(jsonDecode(body));
-      if(storeResponse.data != null && storeResponse.data!.isNotEmpty){
+      if (storeResponse.data != null && storeResponse.data!.isNotEmpty) {
         saveLastStoreUpdate(storeResponse.lastUpdate);
         insertStoresData(storeResponse.data);
       }
     }
   }
 
-  void insertStoresData(List<StoreData>? stores){
+  void insertStoresData(List<StoreData>? stores) {
     instance.deleteAllData(instance.storeDataDetail);
     instance.deleteAllData(instance.storeBeatMappingDataDetail);
     instance.deleteAllData(instance.storeColorDataDetail);
@@ -515,43 +548,111 @@ class SyncHandler {
 
     List<int> pricingIds = [];
 
-    for(StoreData store in stores!){
-
-      StoresDataDetail detail = StoresDataDetail(store.outletId, store.storeId, store.storeName, store.storeLatitude, store.storeLongitude, jsonEncode(store.beats?.map((e) => e.toJson()).toList()), jsonEncode(store.distributorRelation?.map((e) => e.toJson()).toList()), store.tenantId, store.name, store.ownerName, store.managerName, store.contactNo, store.alternateNo, store.division, store.outletLatitude, store.outletLongitude, store.outletAccuracy, store.storeStatus, store.description, store.surveyStatus, store.colorStatus, store.otpSent, store.otpVerified, store.otpSentAlternate, store.otpVerifiedAlternate, store.sms, store.tele, store.email, store.createdAt, store.updatedAt, store.source!=null?store.source.toString():'', store.companyOutletCode!=null?store.companyOutletCode.toString():'', jsonEncode(store.metaData), store.taxType!=null?store.taxType.toString():'', store.taxId!=null?store.taxId.toString():'', store.outletType, store.channel, store.territory, store.beat, store.createdBy, store.updatedBy, '', AppUtils.getSalesman(prefs), jsonEncode(store.schemes?.map((e) => e.toJson()).toList()), store.metaData!=null?store.metaData!.gstn:'', store.metaData!=null?store.metaData!.license:'', store.metaData!=null?store.metaData!.address:'', store.metaData!=null?store.metaData!.remarks:'');
+    for (StoreData store in stores!) {
+      StoresDataDetail detail = StoresDataDetail(
+          store.outletId,
+          store.storeId,
+          store.storeName,
+          store.storeLatitude,
+          store.storeLongitude,
+          jsonEncode(store.beats?.map((e) => e.toJson()).toList()),
+          jsonEncode(
+              store.distributorRelation?.map((e) => e.toJson()).toList()),
+          store.tenantId,
+          store.name,
+          store.ownerName,
+          store.managerName,
+          store.contactNo,
+          store.alternateNo,
+          store.division,
+          store.outletLatitude,
+          store.outletLongitude,
+          store.outletAccuracy,
+          store.storeStatus,
+          store.description,
+          store.surveyStatus,
+          store.colorStatus,
+          store.otpSent,
+          store.otpVerified,
+          store.otpSentAlternate,
+          store.otpVerifiedAlternate,
+          store.sms,
+          store.tele,
+          store.email,
+          store.createdAt,
+          store.updatedAt,
+          store.source != null ? store.source.toString() : '',
+          store.companyOutletCode != null
+              ? store.companyOutletCode.toString()
+              : '',
+          jsonEncode(store.metaData),
+          store.taxType != null ? store.taxType.toString() : '',
+          store.taxId != null ? store.taxId.toString() : '',
+          store.outletType,
+          store.channel,
+          store.territory,
+          store.beat,
+          store.createdBy,
+          store.updatedBy,
+          '',
+          AppUtils.getSalesman(prefs),
+          jsonEncode(store.schemes?.map((e) => e.toJson()).toList()),
+          store.metaData != null ? store.metaData!.gstn : '',
+          store.metaData != null ? store.metaData!.license : '',
+          store.metaData != null ? store.metaData!.address : '',
+          store.metaData != null ? store.metaData!.remarks : '');
       instance.insert(instance.storeDataDetail, detail.toJson());
 
       //store beat mapping
-      if(store.beats!=null && store.beats!.isNotEmpty){
-        for(StoreBeat beat in store.beats!){
-          StoreBeatMappingDataDetail beatMappingDataDetail  = StoreBeatMappingDataDetail(store.storeId, beat.id, beat.name, AppUtils.getSalesman(prefs));
-          instance.insert(instance.storeBeatMappingDataDetail, beatMappingDataDetail.toJson());
+      if (store.beats != null && store.beats!.isNotEmpty) {
+        for (StoreBeat beat in store.beats!) {
+          StoreBeatMappingDataDetail beatMappingDataDetail =
+              StoreBeatMappingDataDetail(store.storeId, beat.id, beat.name,
+                  AppUtils.getSalesman(prefs));
+          instance.insert(instance.storeBeatMappingDataDetail,
+              beatMappingDataDetail.toJson());
         }
       }
 
       //store color mapping
-      if(store.colours!=null && store.colours!.isNotEmpty){
-        for(Colours color in store.colours!){
-          StoreColorDataDetail detail = StoreColorDataDetail(store.storeId, color.colour, color.beat, color.salesTerritory, color.visitDate, color.bill, color.noBill);
+      if (store.colours != null && store.colours!.isNotEmpty) {
+        for (Colours color in store.colours!) {
+          StoreColorDataDetail detail = StoreColorDataDetail(
+              store.storeId,
+              color.colour,
+              color.beat,
+              color.salesTerritory,
+              color.visitDate,
+              color.bill,
+              color.noBill);
           instance.insert(instance.storeColorDataDetail, detail.toJson());
         }
       }
 
       //store price mapping
-      if(store.pricings!=null && store.pricings!.isNotEmpty){
-        for(Pricing pricing in store.pricings!){
+      if (store.pricings != null && store.pricings!.isNotEmpty) {
+        for (Pricing pricing in store.pricings!) {
           pricingIds.add(pricing.pricingList!);
-          StorePriceMappingDataDetail detail = StorePriceMappingDataDetail(store.storeId, pricing.scope, pricing.pricingList, pricing.status, AppUtils.getSalesman(prefs));
-          instance.insert(instance.storePriceMappingDataDetail, detail.toJson());
+          StorePriceMappingDataDetail detail = StorePriceMappingDataDetail(
+              store.storeId,
+              pricing.scope,
+              pricing.pricingList,
+              pricing.status,
+              AppUtils.getSalesman(prefs));
+          instance.insert(
+              instance.storePriceMappingDataDetail, detail.toJson());
         }
       }
     }
 
     fetchPricingList(pricingIds);
-
   }
 
-  void fetchPricingList(List<int> pricingIds) async{
-    var pricingService = await AppUtils.requestBuilder(AppUtils.baseUrl + APIServices.getPricingListService(true,true,pricingIds), headers);
+  void fetchPricingList(List<int> pricingIds) async {
+    var pricingService = await AppUtils.requestBuilder(
+        AppUtils.baseUrl +
+            APIServices.getPricingListService(true, true, pricingIds),
+        headers);
     try {
       if (pricingService.statusCode == 200) {
         handlePricingData(pricingService.body);
@@ -561,16 +662,33 @@ class SyncHandler {
     }
   }
 
-  void handlePricingData(String? body){
-    if(body!=null && body.isNotEmpty){
+  void handlePricingData(String? body) {
+    if (body != null && body.isNotEmpty) {
       List<dynamic> parsedListJson = jsonDecode(body);
-      List<PricingResponse> pricingList = List<PricingResponse>.from(parsedListJson.map<PricingResponse>((dynamic i) => PricingResponse.fromJson(i)));
-      if(pricingList.isNotEmpty){
+      List<PricingResponse> pricingList = List<PricingResponse>.from(
+          parsedListJson.map<PricingResponse>(
+              (dynamic i) => PricingResponse.fromJson(i)));
+      if (pricingList.isNotEmpty) {
         instance.deleteAllData(instance.pricingDataDetail);
-        for(PricingResponse pricing in pricingList){
-          if(pricing.pricings!=null && pricing.pricings!.isNotEmpty){
-            for(ProductPricingObj ppObj in pricing.pricings!){
-              PricingDataDetail detail = PricingDataDetail(pricing.id, pricing.name, pricing.code, pricing.description, pricing.createdAt, pricing.updatedAt, pricing.status, ppObj.product!.id, ppObj.mrp, ppObj.ptr, ppObj.pts, ppObj.nrv, ppObj.isFeatureProduct, ppObj.status, AppUtils.getSalesman(prefs));
+        for (PricingResponse pricing in pricingList) {
+          if (pricing.pricings != null && pricing.pricings!.isNotEmpty) {
+            for (ProductPricingObj ppObj in pricing.pricings!) {
+              PricingDataDetail detail = PricingDataDetail(
+                  pricing.id,
+                  pricing.name,
+                  pricing.code,
+                  pricing.description,
+                  pricing.createdAt,
+                  pricing.updatedAt,
+                  pricing.status,
+                  ppObj.product!.id,
+                  ppObj.mrp,
+                  ppObj.ptr,
+                  ppObj.pts,
+                  ppObj.nrv,
+                  ppObj.isFeatureProduct,
+                  ppObj.status,
+                  AppUtils.getSalesman(prefs));
               instance.insert(instance.pricingDataDetail, detail.toJson());
             }
           }
@@ -579,168 +697,227 @@ class SyncHandler {
     }
   }
 
-  void saveLastStoreUpdate(String? lastUpdate){
-    if(lastUpdate!=null && lastUpdate.isNotEmpty){
+  void saveLastStoreUpdate(String? lastUpdate) {
+    if (lastUpdate != null && lastUpdate.isNotEmpty) {
       prefs.setString('last_store_update', lastUpdate);
     }
   }
 
-  void handleReasonsData(String? body){
-    if(body!=null && body.isNotEmpty){
-      ReasonsResponse reasonsResponse = ReasonsResponse.fromJson(jsonDecode(body));
-      if(reasonsResponse.results!=null && reasonsResponse.results!.isNotEmpty){
+  void handleReasonsData(String? body) {
+    if (body != null && body.isNotEmpty) {
+      ReasonsResponse reasonsResponse =
+          ReasonsResponse.fromJson(jsonDecode(body));
+      if (reasonsResponse.results != null &&
+          reasonsResponse.results!.isNotEmpty) {
         instance.deleteAllData(instance.reasonsDataDetail);
-        for(Reasons reason in reasonsResponse.results!){
-          ReasonDataDetails detail = ReasonDataDetails(reason.id, reason.tenantId, reason.value, reason.groupName, reason.label, reason.status, reason.createdAt, reason.updatedAt);
+        for (Reasons reason in reasonsResponse.results!) {
+          ReasonDataDetails detail = ReasonDataDetails(
+              reason.id,
+              reason.tenantId,
+              reason.value,
+              reason.groupName,
+              reason.label,
+              reason.status,
+              reason.createdAt,
+              reason.updatedAt);
           instance.insert(instance.reasonsDataDetail, detail.toJson());
         }
       }
     }
   }
 
-  void handleDynamicUserActionList(String? body){
-    if(body!=null && body.isNotEmpty){
-      AppUtils.writeResponseToDisk(body,AppUtils.webFiles,'action_list','html');
+  void handleDynamicUserActionList(String? body) {
+    if (body != null && body.isNotEmpty) {
+      AppUtils.writeResponseToDisk(
+          body, AppUtils.webFiles, 'action_list', 'html');
     }
   }
 
-
-  void handleDynamicUserActions(String? body){
-    if(body!=null && body.isNotEmpty){
+  void handleDynamicUserActions(String? body) {
+    if (body != null && body.isNotEmpty) {
       List<dynamic> parsedListJson = jsonDecode(body);
-      List<FormActions> forms = List<FormActions>.from(parsedListJson.map<FormActions>((dynamic i) => FormActions.fromJson(i)));
+      List<FormActions> forms = List<FormActions>.from(parsedListJson
+          .map<FormActions>((dynamic i) => FormActions.fromJson(i)));
       instance.deleteAllData(instance.formActionsDataDetail);
-      for(FormActions form in forms){
-        FormActionsDataDetails details = FormActionsDataDetails(form.id, form.tenantId, form.name, form.description, form.status, form.createdAt, form.updatedAt, form.actor, form.group, form.process, form.category, form.formContent, form.documentType, form.permissionId);
+      for (FormActions form in forms) {
+        FormActionsDataDetails details = FormActionsDataDetails(
+            form.id,
+            form.tenantId,
+            form.name,
+            form.description,
+            form.status,
+            form.createdAt,
+            form.updatedAt,
+            form.actor,
+            form.group,
+            form.process,
+            form.category,
+            form.formContent,
+            form.documentType,
+            form.permissionId);
         instance.insert(instance.formActionsDataDetail, details.toJson());
       }
     }
   }
 
-  void handleStoreTypes(String? body){
-    if(body!=null && body.isNotEmpty){
-      StoreTypeResponse storeTypeResponse = StoreTypeResponse.fromJson(jsonDecode(body));
-      if(storeTypeResponse.data!=null && storeTypeResponse.data!.isNotEmpty){
+  void handleStoreTypes(String? body) {
+    if (body != null && body.isNotEmpty) {
+      StoreTypeResponse storeTypeResponse =
+          StoreTypeResponse.fromJson(jsonDecode(body));
+      if (storeTypeResponse.data != null &&
+          storeTypeResponse.data!.isNotEmpty) {
         instance.deleteAllData(instance.storeTypesDataDetail);
-        for(StoreTypesData type in storeTypeResponse.data!){
-          StoreTypesDataDetail detail = StoreTypesDataDetail(type.id, type.name);
+        for (StoreTypesData type in storeTypeResponse.data!) {
+          StoreTypesDataDetail detail =
+              StoreTypesDataDetail(type.id, type.name);
           instance.insert(instance.storeTypesDataDetail, detail.toJson());
         }
       }
     }
   }
 
-  void handleUserStats(String? body){
-    if(body!=null && body.isNotEmpty){
+  void handleUserStats(String? body) {
+    if (body != null && body.isNotEmpty) {
       UserStatsData userStats = UserStatsData.fromJson(jsonDecode(body));
       instance.deleteAllData(instance.userStatsDataDetail);
-      UserStatsDataDetail detail = UserStatsDataDetail(userStats.status, userStats.monthNrv, userStats.todayNrv, userStats.monthBilled, userStats.monthUnbilled, userStats.todayBilled, userStats.todayUnbilled);
+      UserStatsDataDetail detail = UserStatsDataDetail(
+          userStats.status,
+          userStats.monthNrv,
+          userStats.todayNrv,
+          userStats.monthBilled,
+          userStats.monthUnbilled,
+          userStats.todayBilled,
+          userStats.todayUnbilled);
       instance.insert(instance.userStatsDataDetail, detail.toJson());
     }
   }
 
-  void handleActivities(String? body){
-    if(body!=null && body.isNotEmpty) {
+  void handleActivities(String? body) {
+    if (body != null && body.isNotEmpty) {
       List<dynamic> parsedListJson = jsonDecode(body);
-      List<ActivityData> activities = List<ActivityData>.from(parsedListJson.map<ActivityData>((dynamic i) => ActivityData.fromJson(i)));
-      if(activities.isNotEmpty){
+      List<ActivityData> activities = List<ActivityData>.from(parsedListJson
+          .map<ActivityData>((dynamic i) => ActivityData.fromJson(i)));
+      if (activities.isNotEmpty) {
         instance.deleteAllData(instance.activitiesDataDetail);
-        for(ActivityData activityData in activities){
-          ActivityDataDetail detail = ActivityDataDetail(activityData.id, activityData.name, activityData.startDate, activityData.endDate, activityData.isActive);
+        for (ActivityData activityData in activities) {
+          ActivityDataDetail detail = ActivityDataDetail(
+              activityData.id,
+              activityData.name,
+              activityData.startDate,
+              activityData.endDate,
+              activityData.isActive);
           instance.insert(instance.activitiesDataDetail, detail.toJson());
         }
       }
     }
   }
 
-  void handleTaskService(String? body){
-    if(body!=null && body.isNotEmpty) {
-      PendingTaskResponse pendingTaskResponse = PendingTaskResponse.fromJson(jsonDecode(body));
-      if(pendingTaskResponse.results!=null && pendingTaskResponse.results!.isNotEmpty){
+  void handleTaskService(String? body) {
+    if (body != null && body.isNotEmpty) {
+      PendingTaskResponse pendingTaskResponse =
+          PendingTaskResponse.fromJson(jsonDecode(body));
+      if (pendingTaskResponse.results != null &&
+          pendingTaskResponse.results!.isNotEmpty) {
         instance.deleteAllData(instance.pendingTaskDataDetail);
-        for(PendingTask task in pendingTaskResponse.results!){
+        for (PendingTask task in pendingTaskResponse.results!) {
           PendingTaskDataDetail detail = PendingTaskDataDetail(
-            task.id,
-            jsonEncode(task.form),
-            jsonEncode(task.instance),
-            jsonEncode(task.submittedBy),
-            task.taskName,
-            task.status,
-            task.createdAt,
-            task.updatedAt,
-            task.startDate,
-            task.expireDate,
-            task.submittedAt,
-            task.checksum,
-            jsonEncode(task.data),
-            task.actor,
-            task.group,
-            task.step,
-            task.instance!.data!.storeId
-          );
+              task.id,
+              jsonEncode(task.form),
+              jsonEncode(task.instance),
+              jsonEncode(task.submittedBy),
+              task.taskName,
+              task.status,
+              task.createdAt,
+              task.updatedAt,
+              task.startDate,
+              task.expireDate,
+              task.submittedAt,
+              task.checksum,
+              jsonEncode(task.data),
+              task.actor,
+              task.group,
+              task.step,
+              task.instance!.data!.storeId);
           instance.insert(instance.pendingTaskDataDetail, detail.toJson());
         }
       }
     }
   }
 
-  void handlePlaceService(String? body){
-    if(body!=null && body.isNotEmpty) {
+  void handlePlaceService(String? body) {
+    if (body != null && body.isNotEmpty) {
       PlaceResponse placeResponse = PlaceResponse.fromJson(jsonDecode(body));
-      if(placeResponse.places!=null && placeResponse.places!.isNotEmpty){
+      if (placeResponse.places != null && placeResponse.places!.isNotEmpty) {
         instance.deleteAllData(instance.placeDataDetail);
-        for(Places place in placeResponse.places!){
-          PlacesDataDetail detail = PlacesDataDetail(place.id, place.tenantId, place.name, place.createdAt, place.updatedAt, place.isTerritory, place.type, place.parent);
+        for (Places place in placeResponse.places!) {
+          PlacesDataDetail detail = PlacesDataDetail(
+              place.id,
+              place.tenantId,
+              place.name,
+              place.createdAt,
+              place.updatedAt,
+              place.isTerritory,
+              place.type,
+              place.parent);
           instance.insert(instance.placeDataDetail, detail.toJson());
         }
       }
     }
   }
 
-  void handleChannelResponse(String? body){
-    if(body!=null && body.isNotEmpty) {
-      ChannelResponse channelResponse = ChannelResponse.fromJson(jsonDecode(body));
-      if(channelResponse.results!=null && channelResponse.results!.isNotEmpty){
+  void handleChannelResponse(String? body) {
+    if (body != null && body.isNotEmpty) {
+      ChannelResponse channelResponse =
+          ChannelResponse.fromJson(jsonDecode(body));
+      if (channelResponse.results != null &&
+          channelResponse.results!.isNotEmpty) {
         instance.deleteAllData(instance.channelDataDetail);
-        for(ChannelObj channel in channelResponse.results!){
-          ChannelDataDetail detail = ChannelDataDetail(channel.id, channel.tenantId, channel.name, channel.status, channel.description, channel.createdAt, channel.updatedAt);
+        for (ChannelObj channel in channelResponse.results!) {
+          ChannelDataDetail detail = ChannelDataDetail(
+              channel.id,
+              channel.tenantId,
+              channel.name,
+              channel.status,
+              channel.description,
+              channel.createdAt,
+              channel.updatedAt);
           instance.insert(instance.channelDataDetail, detail.toJson());
         }
       }
     }
   }
 
-
-
   void handleUserDataResponse(String? body) {
-    if(body!=null && body.isNotEmpty) {
+    if (body != null && body.isNotEmpty) {
       prefs.setString("user_data", body);
       sendBroadcastToDashboard(AppStrings.key_set_places);
     }
   }
 
-  void handleSyncCompletion(){
+  void handleSyncCompletion() {
     var calledLength = servicesToBeCalled.length;
     var finishedLength = servicesFinished.length;
-    var percentage = (finishedLength*100)/calledLength;
-    FBroadcast.instance().broadcast(AppStrings.key_sync_progress,value: percentage);
+    var percentage = (finishedLength * 100) / calledLength;
+    FBroadcast.instance()
+        .broadcast(AppStrings.key_sync_progress, value: percentage);
     bool success = true;
-    if(calledLength==finishedLength){
-      try{
+    if (calledLength == finishedLength) {
+      try {
         serviceNames.forEach((element) {
-          if(servicesFinished[element]!=null && !servicesFinished[element]!){
+          if (servicesFinished[element] != null &&
+              !servicesFinished[element]!) {
             success = false;
           }
         });
-      }catch(e){
+      } catch (e) {
         print('error - ${e.toString()}');
       }
 
-      if(success){
+      if (success) {
         prefs.setBool('if_pull', false);
         sendBroadcastToDashboard(AppStrings.key_success);
         sendBroadcastToDashboard(AppStrings.key_set_chart);
-      }else{
+      } else {
         sendBroadcastToDashboard(AppStrings.key_failure);
       }
 
@@ -748,15 +925,10 @@ class SyncHandler {
       servicesFinished.clear();
 
       AppUtils.isSyncGoingOn = false;
-
     }
-
-
-
   }
 
   void sendBroadcastToDashboard(String key) {
     FBroadcast.instance().broadcast(key);
   }
 }
-

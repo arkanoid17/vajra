@@ -47,6 +47,7 @@ dependencies:
   fl_chart: ^0.55.2
   geolocator: ^9.0.2
   google_maps_flutter: ^2.2.1
+  flutter_inappwebview: ^5.7.1
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -104,6 +105,12 @@ flutter:
     - assets/images/message_primary.png
     - assets/images/navigation_primary.png
     - assets/images/view_image_primary.png
+    - assets/images/ic_product_default.png
+    - assets/images/ic_primary_schemes.png
+    - assets/images/ic_schemes_white.png
+    - assets/images/ic_tasks_white.png
+    - assets/images/ic_cart_white.png
+    - assets/plugins/
 
 
   # To add assets to your application, add an assets section, like this:

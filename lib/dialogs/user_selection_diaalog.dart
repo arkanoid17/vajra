@@ -21,6 +21,10 @@ import 'package:vajra/resource_helper/strings.dart';
 import 'package:vajra/services/APIServices.dart';
 import 'package:vajra/utils/app_utils.dart';
 
+import '../db/product_distributor_type_data_detail/product_distributor_type_data_detail.dart';
+import '../models/product/product.dart';
+import '../models/user_hierarchy/distributor_types.dart';
+
 class UserSelectionDialog extends StatefulWidget{
 
   final List<UserHierarchyDataDetail> allUsers;
@@ -362,7 +366,8 @@ class _UserSelectionDialog extends State<UserSelectionDialog>{
       if(productResponse.data != null){
         instance.execQuery('DELETE FROM ${instance.productDataDetail} where ${ProductDataFields.salesmanId} = $id');
         ProductDataDetail product;
-        productResponse.data?.map((prd) => {
+        int isInserted;
+        for (Product prd in productResponse.data!) {
           product = ProductDataDetail(
               prd.productName,
               prd.productId,
@@ -380,7 +385,8 @@ class _UserSelectionDialog extends State<UserSelectionDialog>{
               prd.discountValue,
               prd.productStatus,
               prd.quantityLimit,
-              "",//todo add value
+              "",
+              //todo: add value
               prd.pts,
               prd.netPrice,
               prd.isFeatureProduct,
@@ -394,10 +400,17 @@ class _UserSelectionDialog extends State<UserSelectionDialog>{
               prd.image,
               id,
               jsonEncode(prd.brand),
-              0
-          ),
-          instance.insert(instance.productDataDetail, product.toJson()),
-        });
+              0,
+              0);
+          isInserted = await instance.insert(instance.productDataDetail, product.toJson());
+          if(prd.distributorTypes!=null && prd.distributorTypes!.isNotEmpty){
+            for(DistributorTypes type in prd.distributorTypes!){
+              ProductDataDistributorTypeDataDetail detail = ProductDataDistributorTypeDataDetail(prd.productId, selectedUser!.id, type.id, type.name);
+              instance.insert(instance.productDataDistributorTypeDataDetail, detail.toJson());
+            }
+          }
+        }
+
       }
     }
   }

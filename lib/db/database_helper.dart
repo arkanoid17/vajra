@@ -5,12 +5,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:vajra/db/activity_data_detail/activity_data_detail.dart';
+import 'package:vajra/db/cart_item_data_detail/cart_item_data_detail.dart';
+import 'package:vajra/db/cart_item_data_detail/cart_item_distributor_type.dart';
 import 'package:vajra/db/channel_data_detail/channel_data_detail.dart';
 import 'package:vajra/db/form_actions_data_detail/form_action_data_details.dart';
 import 'package:vajra/db/pending_task_data_detail/pending_task_data_detail.dart';
 import 'package:vajra/db/places_data_detail/places_data_detail.dart';
 import 'package:vajra/db/pricing_data_detail/pricing_data_detail.dart';
 import 'package:vajra/db/product_data_detail/product_data_detail.dart';
+import 'package:vajra/db/product_distributor_type_data_detail/product_distributor_type_data_detail.dart';
 import 'package:vajra/db/reasons_data_detail/reasons_data_detail.dart';
 import 'package:vajra/db/schemes_data_detail/schemes_data_detail.dart';
 import 'package:vajra/db/store_beat_mapping_data_detail/store_beat_mapping_data_detail.dart';
@@ -46,6 +49,9 @@ class DatabaseHelper {
   final String storeColorDataDetail = 'store_color_data_detail';
   final String storePriceMappingDataDetail = 'store_price_mapping_data_detail';
   final String pricingDataDetail = 'price_data_detail';
+  final String cartItemDataDetail = 'cart_item_data_detail';
+  final String cartItemDistributorTypeDataDetail = 'cart_item_distributor_type_data_detail';
+  final String productDataDistributorTypeDataDetail = 'product_data_distributor_type_data_detail';
 
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
 
@@ -152,7 +158,17 @@ class DatabaseHelper {
         '${ProductDataFields.image} $text,'
         '${ProductDataFields.salesmanId} $integer,'
         '${ProductDataFields.brand} $text,'
-        '${ProductDataFields.schemeId} $integer'
+        '${ProductDataFields.schemeId} $integer,'
+        '${ProductDataFields.schemeCount} $integer'
+        ')');
+
+    await db.execute('CREATE TABLE ${instance.productDataDistributorTypeDataDetail}'
+        '('
+        '${ProductDataDistributorTypeDataDetailFields.id} $primaryKeyAutoIncrement,'
+        '${ProductDataDistributorTypeDataDetailFields.productId} $integer,'
+        '${ProductDataDistributorTypeDataDetailFields.salesmanId} $integer,'
+        '${ProductDataDistributorTypeDataDetailFields.distributorTypeId} $integer,'
+        '${ProductDataDistributorTypeDataDetailFields.distributorTypeName} $text'
         ')');
 
     //schemes table
@@ -272,6 +288,7 @@ class DatabaseHelper {
         '${FormActionsDataDetailsFields.documentType} $text,'
         '${FormActionsDataDetailsFields.permissionId} $integer'
         ')'
+
     );
 
     await db.execute('CREATE TABLE $reasonsDataDetail'
@@ -394,6 +411,36 @@ class DatabaseHelper {
         '${PricingDataDetailFields.userId} $integer'
         ')'
     );
+
+
+
+    await db.execute('CREATE TABLE ${instance.cartItemDataDetail}'
+        '('
+        '${CartItemDataDetailFields.id} $primaryKeyAutoIncrement,'
+        '${CartItemDataDetailFields.storeId} $text,'
+        '${CartItemDataDetailFields.productId} $integer,'
+        '${CartItemDataDetailFields.productName} $text,'
+        '${CartItemDataDetailFields.isFree} $integer,'
+        '${CartItemDataDetailFields.packId} $integer,'
+        '${CartItemDataDetailFields.packValue} $integer,'
+        '${CartItemDataDetailFields.packCount} $integer,'
+        '${CartItemDataDetailFields.count} $integer,'
+        '${CartItemDataDetailFields.schemeId} $integer,'
+        '${CartItemDataDetailFields.createdAt} $text,'
+        '${CartItemDataDetailFields.updatedAt} $text'
+        ')'
+    );
+
+    await db.execute('CREATE TABLE ${instance.cartItemDistributorTypeDataDetail}'
+        '('
+        '${CartItemDistributorTypeFields.id} $primaryKeyAutoIncrement,'
+        '${CartItemDistributorTypeFields.cartId} $integer,'
+        '${CartItemDistributorTypeFields.distributorTypeId} $integer,'
+        '${CartItemDistributorTypeFields.distributorTypeName} $integer,'
+        'FOREIGN KEY(${CartItemDistributorTypeFields.cartId}) REFERENCES ${instance.cartItemDataDetail}(${CartItemDataDetailFields.id}) ON UPDATE NO ACTION ON DELETE CASCADE'
+        ')');
+
+
 
   }
 

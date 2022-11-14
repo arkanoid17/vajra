@@ -4,10 +4,12 @@ import 'package:vajra/resource_helper/color_constants.dart';
 import 'package:vajra/resource_helper/strings.dart';
 import 'package:vajra/screens/book_order.dart';
 import 'package:vajra/screens/dashboard.dart';
+import 'package:vajra/screens/dynamic_actions_page.dart';
 import 'package:vajra/screens/error_page.dart';
 import 'package:vajra/screens/login.dart';
 import 'package:vajra/screens/splash_screen.dart';
 import 'package:vajra/screens/store_listing.dart';
+import 'package:vajra/screens/store_onboarding.dart';
 import 'package:vajra/services/navigation_service.dart';
 
 void main() {
@@ -36,6 +38,7 @@ class MainScreen extends StatelessWidget {
         '/login': (context) => LoginPage(),
         '/dashboard': (context) => Dashboard(),
         '/stores': (context) => StoreListing(),
+        '/store-onboarding': (context) => StoreOnboarding(),
       },
     );
   }
@@ -44,6 +47,11 @@ class MainScreen extends StatelessWidget {
     if (settings.name == '/book-order') {
       // FooRoute constructor expects SomeObject
       return _buildRoute(settings, BookOrder(settings.arguments));
+    }
+
+    if (settings.name == '/dynamic-actions') {
+      // FooRoute constructor expects SomeObject
+      return _buildRoute(settings, DynamicActionsPage(settings.arguments));
     }
 
     return _buildRoute(settings,  ErrorPage());

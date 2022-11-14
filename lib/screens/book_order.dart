@@ -1,11 +1,22 @@
+import 'dart:convert';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:vajra/db/cart_item_data_detail/cart_item_data_detail.dart';
+import 'package:vajra/db/cart_item_data_detail/cart_item_distributor_type.dart';
 import 'package:vajra/db/database_helper.dart';
 import 'package:vajra/db/pricing_data_detail/pricing_data_detail.dart';
 import 'package:vajra/db/store_price_mapping_data_detail/store_price_mapping_data_detail.dart';
 import 'package:vajra/db/stores_data_detail/stores_data_detail.dart';
+import 'package:vajra/models/product/pack.dart';
+import 'package:vajra/resource_helper/color_constants.dart';
+import 'package:vajra/resource_helper/strings.dart';
+import 'package:vajra/subscreen/schemes_list.dart';
+import 'package:vajra/utils/app_utils.dart';
 
 import '../db/product_data_detail/product_data_detail.dart';
+import '../db/schemes_data_detail/schemes_data_detail.dart';
+import '../subscreen/item_list.dart';
 
 class BookOrder extends StatefulWidget{
 
@@ -29,10 +40,21 @@ class _BookOrder extends State<BookOrder>{
 
   late DatabaseHelper instance;
 
+  bool isSearching = false;
+  TextEditingController searchController = TextEditingController();
+
+  Map<int,List<SchemesDataDetail>> mapQps = Map();
+  Map<int,List<SchemesDataDetail>> mapDiscount = Map();
+  Map<int,List<SchemesDataDetail>> mapVisibility = Map();
+
+
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   void getPricings()async {
-    var pricingResults = await  instance.execQuery('SELECT ${StorePriceMappingDataDetailFields.pricingList} FROM ${instance.storePriceMappingDataDetail} WHERE ${StorePriceMappingDataDetailFields.storeId} = ${store.storeId} AND ${StorePriceMappingDataDetailFields.scope} = Field AND ${StorePriceMappingDataDetailFields.userId} = $selectedUser AND ${StorePriceMappingDataDetailFields.status} = ${true}');
+
+    List<ProductDataDetail> prdList = [];
+
+    var pricingResults = await  instance.execQuery('SELECT ${StorePriceMappingDataDetailFields.pricingList} FROM ${instance.storePriceMappingDataDetail} WHERE ${StorePriceMappingDataDetailFields.storeId} = "${store.storeId}" AND ${StorePriceMappingDataDetailFields.scope} = "Field" AND ${StorePriceMappingDataDetailFields.userId} = $selectedUser AND ${StorePriceMappingDataDetailFields.status} = ${true}');
     var pricingId = -1;
     for( var pricing in pricingResults){
       pricingId = pricing[StorePriceMappingDataDetailFields.pricingList];
@@ -41,45 +63,465 @@ class _BookOrder extends State<BookOrder>{
     var priceListResults = await instance.execQuery('SELECT * FROM ${instance.pricingDataDetail} WHERE ${PricingDataDetailFields.pricing_id} = $pricingId AND ${PricingDataDetailFields.userId} = $selectedUser AND ${PricingDataDetailFields.pricing_status} = ${true} AND ${PricingDataDetailFields.product_status} = ${true}');
     for(var price in priceListResults){
       ProductDataDetail? prd;
-      var prdResult = await instance.execQuery('SELECT * FROM ${instance.productDataDetail} where product_id = :val');
-      
+      var prdResult = await instance.execQuery('SELECT * FROM ${instance.productDataDetail} where ${ProductDataFields.productId} = ${price['product']} AND ${ProductDataFields.salesmanId} = $selectedUser');
+      for(var prod in prdResult){
+        prd = ProductDataDetail.fromJson(prod);
+
+        //sort pack and set first selected
+        List<Pack> packList = [];
+        List<dynamic> parsedListJson = jsonDecode(prod['packs']);
+        packList = List<Pack>.from(parsedListJson.map<Pack>((dynamic i) => Pack.fromJson(i)));
+        packList.sort((a, b) => a.units!.compareTo(b.units!));
+        if(packList.isNotEmpty){
+          bool isAnyPackSelected = false;
+          for(Pack pack in packList){
+            if(pack.isSelected!=null && pack.isSelected!){
+              isAnyPackSelected = true;
+              break;
+            }
+          }
+
+          if(!isAnyPackSelected){
+            packList[0].isSelected = true;
+          }
+        }
+        prd.packs = jsonEncode(packList.map((e) => e.toJson()).toList());
+        //pack finished
+
+        prd.mrp = price['mrp'];
+        prd.nrv = price['nrv'];
+        prd.ptr = price['ptr'];
+        prd.pts = price['pts'];
+        prd.schemeCount = await getSchemeCount(prod['productId']);
+        prd.isFeatureProduct = price['isFeatureProduct']==1;
+        prd.productStatus = price['productStatus']==1;
+        prdList.add(prd);
+        break;
+      }
     }
+
+    prdList.sort((a, b) => a.productName!.compareTo(b.productName!));
+
+    var featured = prdList.where((element) => element.isFeatureProduct!).toList();
+    var notFeatured = prdList.where((element) => !element.isFeatureProduct!).toList();
+
+    prdList = [];
+    if(featured!=null && featured.isNotEmpty) {
+      prdList.addAll(featured);
+    }
+    if(notFeatured!=null && notFeatured.isNotEmpty) {
+      prdList.addAll(notFeatured);
+    }
+
+    setState(() {
+      productList = prdList;
+      filteredList = prdList;
+      currentWidget =  ItemList(itemList: filteredList,instance: instance,addToCart: addToCart,store: store,cartItems: cartItems,updateCartItem: updateCartItem,);
+    });
+
   }
+
+  Future<int> getSchemeCount(int productId) async {
+    var count = await instance.execQuery('SELECT COUNT(*) AS cnt FROM ${instance.schemesDataDetail} WHERE ${SchemeDataDetailFields.productId} = $productId AND ${SchemeDataDetailFields.isQps} = ${false}');
+
+
+   if(count.isNotEmpty){
+     for(var cnt in count){
+       return cnt['cnt'];
+     }
+   }
+
+    return 0;
+  }
+
+  int step = 1;
+  Widget? currentWidget;
+
+  late Widget toolbar;
+
+  List<CartItemDataDetail> cartItems = [];
+
 
   @override
   void initState() {
-    instance = DatabaseHelper.instance;
+
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
 
-    final arguments = (ModalRoute.of(context)?.settings.arguments ?? <String, dynamic>{}) as Map;
-
-    setState(() {
-      store = arguments['store'];
-      selectedUser = arguments['selectedUser'];
-
-    });
-
-    getPricings();
+    if(selectedUser==0){
+      final arguments = (ModalRoute.of(context)?.settings.arguments ?? <String, dynamic>{}) as Map;
+      setState(() {
+        instance = DatabaseHelper.instance;
+        store = arguments['store'];
+        selectedUser = arguments['selectedUser'];
+      });
+      getPricings();
+      setCartItems();
+    }
 
     // TODO: implement build
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
-        title: Text(store.name!=null?store!.name!:''),
+        title: getTitleText(),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: (){
-            Navigator.pop(context);
+            if(step==1){
+              Navigator.pop(context);
+            }else{
+              setState(() {
+                --step;
+              });
+              setCurrentWidget();
+            }
           },
         ),
-      ),
+        actions: getActions(),
 
+      ),
+      body: Column(
+        children: [
+          Expanded(child: currentWidget!=null?currentWidget!:Center(
+            child: CircularProgressIndicator(),
+          )),
+         Padding(padding: EdgeInsets.all(16),
+         child:  Row(
+           mainAxisAlignment: MainAxisAlignment.center,
+           children: [
+             RawMaterialButton(
+               onPressed: () {
+                 if(step!=2){
+                   setState(() {
+                     step = 2;
+                   });
+                   setCurrentWidget();
+                 }
+               },
+               elevation: 2.0,
+               fillColor: ColorConstants.color_7E5BC0_FF,
+               child: Column(
+                 children: [
+                   Image.asset(
+                     'assets/images/ic_schemes_white.png',
+                   ),
+                   Text(AppStrings.schemes,style: TextStyle(color: Colors.white,fontSize: 12),)
+                 ],
+               ),
+               padding: EdgeInsets.all(15.0),
+               shape: CircleBorder(),
+             ),
+             RawMaterialButton(
+               onPressed: () {
+
+               },
+               elevation: 2.0,
+               fillColor: ColorConstants.color_7E5BC0_FF,
+               child: Column(
+                 children: [
+                   Image.asset(
+                     'assets/images/ic_tasks_white.png',
+                   ),
+                   Text(AppStrings.task,style: TextStyle(color: Colors.white,fontSize: 12),)
+                 ],
+               ),
+               padding: EdgeInsets.all(15.0),
+               shape: CircleBorder(),
+             ),
+             RawMaterialButton(
+               onPressed: () {},
+               elevation: 2.0,
+               fillColor: ColorConstants.color_7E5BC0_FF,
+               child: Column(
+                 children: [
+                   Image.asset(
+                     'assets/images/ic_cart_white.png',
+                   ),
+                   Text(AppStrings.cart,style: TextStyle(color: Colors.white,fontSize: 12),)
+                 ],
+               ),
+               padding: EdgeInsets.all(15.0),
+               shape: CircleBorder(),
+             )
+           ],),)
+        ],
+      ),
 
     );
   }
+
+  void setCurrentWidget(){
+
+
+    switch(step){
+      case 1:
+        setState(() {
+          currentWidget =  ItemList(itemList: filteredList,instance: instance,addToCart: addToCart,store: store,cartItems: cartItems,updateCartItem: updateCartItem,);
+        });
+        break;
+      case 2:
+        setSchemes();
+
+        break;
+
+      default: currentWidget =  ItemList(itemList: filteredList,instance: instance,addToCart: addToCart,store: store, cartItems: cartItems,updateCartItem: updateCartItem, );
+    }
+  }
+
+  getTitleText() {
+    switch(step){
+      case 1:
+        return isSearching
+            ? TextField(
+          style: TextStyle(color: Colors.white, fontSize: 16),
+          controller: searchController,
+          onChanged: (text) {
+            setState(() {
+              if(searchController.text.isEmpty){
+                setState(() {
+                  filteredList = productList;
+                  if(step==1){
+                    currentWidget = ItemList(itemList: filteredList,instance: instance,addToCart: addToCart, store: store,cartItems: cartItems,updateCartItem: updateCartItem, );
+                  }
+                });
+              }else{
+                List<ProductDataDetail> prds = productList.where((element) => element.productName!.toLowerCase().contains(searchController.text.toLowerCase())).toList();
+                setState(() {
+                  filteredList = prds;
+                  if(step==1){
+                    currentWidget = ItemList(itemList: filteredList,instance: instance,addToCart: addToCart, store: store,cartItems: cartItems,updateCartItem: updateCartItem, );
+                  }
+                });
+              }
+            });
+          },
+          decoration: InputDecoration(
+            border: InputBorder.none,
+            hintText: AppStrings.search,
+            hintStyle: TextStyle(
+                color: Colors.white.withAlpha(120), fontSize: 16),
+          ),
+        )
+            : Text(store.name!=null?store.name!:'');
+      case 2:
+        return Text(AppStrings.schemes);
+
+    }
+  }
+
+  getActions() {
+    List<Widget> actions = [];
+    switch(step){
+      case 1:
+        actions.add(
+            IconButton(
+                onPressed: (){
+                    setState(() {
+                      isSearching = !isSearching;
+                      searchController.text = '';
+                      filteredList = productList;
+                      if(step==1){
+                        currentWidget = ItemList(itemList: filteredList,instance: instance,addToCart: addToCart, store: store,cartItems: cartItems,updateCartItem: updateCartItem, );
+                      }
+                    });
+                },
+                icon: isSearching ? Icon(Icons.cancel) : Icon((Icons.search))
+            )
+        );
+        break;
+    }
+    return actions;
+  }
+
+  updateCartItem(CartItemDataDetail item,ProductDataDetail product,int packCount){
+
+    if(packCount>999){
+      packCount = 999;
+      AppUtils.showMessage('Max limit reached!');
+    }
+
+    if(packCount<=0){
+     packCount = 0;
+    }
+
+    if(packCount == 0){
+      instance.execQuery('DELETE FROM ${instance.cartItemDataDetail} WHERE ${CartItemDataDetailFields.id} = ${item.id}');
+    }else {
+      Pack selectedPack = AppUtils.getSelectedPack(product.packs);
+      var count = selectedPack.units! * packCount;
+
+
+      instance.execQuery(
+          'UPDATE ${instance.cartItemDataDetail} SET ${CartItemDataDetailFields
+              .packCount} = $packCount, ${CartItemDataDetailFields
+              .count} = $count WHERE ${CartItemDataDetailFields.id} = ${item
+              .id}');
+    }
+
+    setCartItems();
+  }
+
+  void addToCart(ProductDataDetail productDataDetail, String selectedPackName, bool isFree, int packCount, int schemeId, List<int> distributorTypeIds, List<String> distributorTypes) async{
+
+    Pack selectedPack = AppUtils.getSelectedPack(productDataDetail.packs);
+
+    var count = selectedPack.units!*packCount;
+
+    CartItemDataDetail item = CartItemDataDetail(
+        store.storeId,
+        productDataDetail.productId,
+        productDataDetail.productName,
+        productDataDetail.isQps!,
+        selectedPack.id,
+        selectedPack.units,
+        packCount,
+        count,
+        schemeId,
+        AppUtils.getNowDateAndTime(),
+        AppUtils.getNowDateAndTime()
+    );
+
+    var cartId = await instance.insert(instance.cartItemDataDetail, item.toJson());
+    for(int i=0;i<distributorTypeIds.length;i++) {
+      CartItemDistributorType type = CartItemDistributorType(
+          cartId, distributorTypeIds[i], distributorTypes[i]);
+      instance.insert(instance.cartItemDistributorTypeDataDetail, type.toJson());
+    }
+    setCartItems();
+  }
+
+  void setCartItems() async{
+    var items = await instance.execQuery('SELECT * FROM ${instance.cartItemDataDetail} WHERE ${CartItemDataDetailFields.storeId} = "${store.storeId}"');
+    List<CartItemDataDetail> carts = [];
+    for(var item in items){
+      CartItemDataDetail itm = CartItemDataDetail(
+          item['storeId'],
+          item['productId'],
+          item['productName'],
+          item['isFree']==1,
+          item['packId'],
+          item['packValue'],
+          item['packCount'],
+          item['_count'],
+          item['schemeId'],
+          item['createdAt'],
+          item['updatedAt']
+      );
+
+      itm.id = item['_id'];
+      carts.add(itm);
+    }
+
+    setState(() {
+      cartItems = carts;
+    });
+
+    setCurrentWidget();
+
+  }
+
+  void setSchemes() async {
+
+    var countScheme = await instance.execQuery('SELECT COUNT(*) as cnt FROM ${instance.schemesDataDetail}');
+    for(var cnt in countScheme){
+      print('cnt - ${cnt['cnt']}');
+    }
+
+    List<SchemesDataDetail> schemeList = [];
+    var schemeData = await instance
+        .execQuery('SELECT * FROM ${instance.schemesDataDetail} WHERE ${SchemeDataDetailFields.salesmanId} = $selectedUser');
+    if (schemeData.isNotEmpty) {
+      for (var scheme in schemeData) {
+        schemeList.add(SchemesDataDetail.fromJson(scheme));
+      }
+    }
+
+
+    print('schemes ${schemeData.length}');
+
+    List<SchemesDataDetail> discounts = [];
+    List<SchemesDataDetail> qps = [];
+    List<SchemesDataDetail> visibility = [];
+    for(SchemesDataDetail scheme in schemeList){
+      if(scheme.schemeTypeId==AppUtils.schemes['flat'] || scheme.schemeTypeId == AppUtils.schemes['percentage']){
+        discounts.add(scheme);
+      }
+      if(scheme.schemeTypeId==AppUtils.schemes['qps']){
+        qps.add(scheme);
+      }
+      if(scheme.schemeTypeId==AppUtils.schemes['visibility']){
+        visibility.add(scheme);
+      }
+    }
+
+
+
+    Map<int,List<SchemesDataDetail>> mapD = Map();
+
+    //discounts//
+    var discKeys = [];
+    for(SchemesDataDetail scheme in discounts){
+      if(!discKeys.contains(scheme.discountId)){
+        discKeys.add(scheme.discountId);
+      }
+    }
+
+    for(int key in discKeys) {
+      mapD[key] = discounts.where((element) => element.discountId==key).toList();
+    }
+
+    setState(() {
+      mapDiscount = mapD;
+    });
+    //discounts//
+
+
+
+    //qps//
+    Map<int,List<SchemesDataDetail>> mapQ = Map();
+    var qpsKeys = [];
+    for(SchemesDataDetail scheme in qps){
+        if(!qpsKeys.contains(scheme.discountId)){
+        qpsKeys.add(scheme.discountId);
+      }
+    }
+
+    for(int key in qpsKeys) {
+      mapQ[key] = qps.where((element) => element.discountId==key).toList();
+    }
+
+    setState(() {
+      mapQps = mapQ;
+    });
+    //qps//
+
+
+    //visibility//
+    Map<int,List<SchemesDataDetail>> mapV = Map();
+    var visibilityKeys = [];
+    for(SchemesDataDetail scheme in visibility){
+      if(!visibilityKeys.contains(scheme.discountId)){
+        visibilityKeys.add(scheme.discountId);
+      }
+    }
+
+    for(int key in visibilityKeys) {
+      mapV[key] = visibility.where((element) => element.discountId==key).toList();
+    }
+
+    setState(() {
+      mapVisibility = mapV;
+    });
+    //visibility//
+
+    setState(() {
+      currentWidget =  SchemeList(itemList: filteredList,instance: instance,mapQps: mapQps,mapDiscount: mapDiscount,mapVisibility: mapVisibility,);
+    });
+
+  }
+
 
 }

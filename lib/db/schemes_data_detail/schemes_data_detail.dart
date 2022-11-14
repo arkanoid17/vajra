@@ -72,4 +72,23 @@ class SchemesDataDetail{
   SchemeDataDetailFields.salesmanId : salesmanId
   };
 
+  factory SchemesDataDetail.fromJson(Map<dynamic, dynamic> json) =>
+     SchemesDataDetail(
+      json['discountId'],
+      json['productId'],
+      json['discountName'],
+      json['productName'],
+      json['minQty'],
+      json['tenure'],
+      json['discountValue'],
+      json['discountUom'],
+      json['startDate'],
+      json['endDate'],
+      json['isQps']==1,
+      json['description'],
+      json['schemeTypeId'],
+      json['schemeType'],
+      json['salesmanId'],
+    );
+
 }

@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.adjointechnologies.vajra">
+    package="com.adjointtechnologies.vajra">
 
 
     <uses-permission android:name="android.permission.INTERNET"/>
@@ -21,6 +21,7 @@
 
 
        <activity
+           android:usesCleartextTraffic="true"
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"

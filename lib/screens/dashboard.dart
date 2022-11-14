@@ -301,6 +301,11 @@ class _Dashboard extends State<Dashboard> {
     isLocationEnabled?Navigator.pushNamed(context, '/stores'):AppUtils.showMessage(AppStrings.gpsTurnON);
   }
 
+  void navigateToStoreOnboarding() async{
+    bool isLocationEnabled = await Geolocator.isLocationServiceEnabled();
+    isLocationEnabled?Navigator.pushNamed(context, '/store-onboarding'):AppUtils.showMessage(AppStrings.gpsTurnON);
+  }
+
   @override
   Widget build(BuildContext context) {
     return prefs != null
@@ -1183,6 +1188,9 @@ class _Dashboard extends State<Dashboard> {
         prefs!.clear();
         instance.deleteDatabase();
         Navigator.pushReplacementNamed(context, '/login');
+        break;
+      case AppStrings.onboardStore:
+        navigateToStoreOnboarding();
         break;
       case AppStrings.syncData:
         prefs!.setBool('if_pull', true);

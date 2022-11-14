@@ -1119,7 +1119,6 @@ class _StoreListing extends State<StoreListing> {
   }
 
     goToOrder(BuildContext ctx) {
-    print('yes');
     Navigator.pushNamed(
         ctx,
         '/book-order',
