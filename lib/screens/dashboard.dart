@@ -1192,6 +1192,9 @@ class _Dashboard extends State<Dashboard> {
       case AppStrings.onboardStore:
         navigateToStoreOnboarding();
         break;
+      case AppStrings.myReport:
+        navigateToMyReport();
+        break;
       case AppStrings.syncData:
         prefs!.setBool('if_pull', true);
         SyncHandler(context, prefs!, instance).startSync();
@@ -1217,5 +1220,9 @@ class _Dashboard extends State<Dashboard> {
     setState(() {
       isSyncDone = value;
     });
+  }
+
+  void navigateToMyReport() {
+    Navigator.pushNamed(context, '/my-report');
   }
 }

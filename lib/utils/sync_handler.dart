@@ -733,12 +733,14 @@ class SyncHandler {
     }
   }
 
-  void handleDynamicUserActions(String? body) {
+  void handleDynamicUserActions(String? body) async {
     if (body != null && body.isNotEmpty) {
       List<dynamic> parsedListJson = jsonDecode(body);
       List<FormActions> forms = List<FormActions>.from(parsedListJson
           .map<FormActions>((dynamic i) => FormActions.fromJson(i)));
       instance.deleteAllData(instance.formActionsDataDetail);
+
+
       for (FormActions form in forms) {
         FormActionsDataDetails details = FormActionsDataDetails(
             form.id,
@@ -752,7 +754,7 @@ class SyncHandler {
             form.group,
             form.process,
             form.category,
-            form.formContent,
+            await getFilePathOfForm(form.formContent,form.name),
             form.documentType,
             form.permissionId);
         instance.insert(instance.formActionsDataDetail, details.toJson());
@@ -930,5 +932,23 @@ class SyncHandler {
 
   void sendBroadcastToDashboard(String key) {
     FBroadcast.instance().broadcast(key);
+  }
+
+  Future<String?> getFilePathOfForm(String? formContent, String? name) async{
+    if(formContent!=null && formContent.isNotEmpty){
+      Directory directory = await getApplicationDocumentsDirectory();
+      String path = '${directory.path}/${AppUtils.webFiles}';
+      directory = Directory(path);
+      if(!await directory.exists()){
+    directory.create();
+    }
+
+
+    final File file = File('${directory.path}/$name.html');
+    await file.writeAsString(formContent);
+    String p = file.path;
+    return p;
+    }
+    return null;
   }
 }

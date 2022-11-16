@@ -7,6 +7,7 @@ import 'package:vajra/screens/dashboard.dart';
 import 'package:vajra/screens/dynamic_actions_page.dart';
 import 'package:vajra/screens/error_page.dart';
 import 'package:vajra/screens/login.dart';
+import 'package:vajra/screens/my_report.dart';
 import 'package:vajra/screens/splash_screen.dart';
 import 'package:vajra/screens/store_listing.dart';
 import 'package:vajra/screens/store_onboarding.dart';
@@ -39,6 +40,7 @@ class MainScreen extends StatelessWidget {
         '/dashboard': (context) => Dashboard(),
         '/stores': (context) => StoreListing(),
         '/store-onboarding': (context) => StoreOnboarding(),
+        '/my-report': (context) => MyReport(),
       },
     );
   }

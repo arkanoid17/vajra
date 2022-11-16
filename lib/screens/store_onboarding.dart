@@ -357,7 +357,7 @@ class _StoreOnboarding extends State<StoreOnboarding> {
                           Expanded(
                               child: ElevatedButton(
                                   onPressed: () {
-                                    Navigator.pushNamed(
+                                    Navigator.pushReplacementNamed(
                                         context,
                                         '/dynamic-actions',
                                         arguments: {

@@ -33,6 +33,7 @@ class AppUtils {
   static int db_version = 1;
 
   static String webFiles = "web_files";
+  static String report = "report_files";
 
   static int location_update_min_distance = 5;
   static int min_time_location_update = 5;
@@ -92,7 +93,6 @@ class AppUtils {
       headers['tenant-id'] = tenantId;
     }
     if(token!=""){
-      print('Token $token');
       headers['Authorization'] = "Token $token";
     }
     headers["APP-VERSION"] = version;
@@ -141,6 +141,9 @@ class AppUtils {
     if(!await directory.exists()){
       directory.create();
     }
+
+    print(content);
+
     final File file = File('${directory.path}/$name.$ext');
     await file.writeAsString(content);
   }

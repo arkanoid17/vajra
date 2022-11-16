@@ -18,6 +18,22 @@ class APIServices {
   static const String pricingListService = 'portal/api/pricing-list/';
   static const String salesHistoryService = 'portal/api/sales/history/';
   static const String nearbyStoreService = 'salesman/nearby_stores/';
+  static const String myReportService = 'reports/my_report/';
+
+  static String getMyReportService(String? fromDate,String? toDate){
+    String path = myReportService;
+    String queries = '';
+
+    if(fromDate!=null){
+      queries = '$queries${getSeperator(queries)}from_date=$fromDate';
+    }
+
+    if(toDate!=null){
+      queries = '$queries${getSeperator(queries)}to_date=$toDate';
+    }
+
+    return '$path$queries';
+  }
 
   static String getNearbyStoresService(double? latitude,double? longitude,int? limit,int? radius){
     String path = nearbyStoreService;

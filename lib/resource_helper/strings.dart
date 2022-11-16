@@ -21,7 +21,7 @@ class AppStrings {
   static const onboardStore = 'Onboard Store';
   static const syncData = 'Sync Data';
   static const referrals = 'Referrals';
-  static const appInfo = 'appInfo';
+  static const appInfo = 'App Info';
   static const logout = 'Logout';
   static const actions = 'Actions';
   static const shareBackup = 'Share Backup';

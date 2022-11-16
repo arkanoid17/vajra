@@ -55,5 +55,6 @@
 	<string>Storage permission required!</string>
 	<key>io.flutter.embedded_views_preview</key>
     <string>YES</string>
+
 </dict>
 </plist>
