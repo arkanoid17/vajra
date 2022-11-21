@@ -5,6 +5,7 @@ class SchemeDataDetailFields{
   static const String discountName = 'discountName';
   static const String productName = 'productName';
   static const String minQty = 'minQty';
+  static const String minPurchaseValue = 'minPurchaseValue';
   static const String tenure = 'tenure';
   static const String discountValue = 'discountValue';
   static const String discountUom = 'discountUom';
@@ -24,6 +25,7 @@ class SchemesDataDetail{
   String? discountName;
   String? productName;
   int? minQty;
+  double? minPurchaseValue;
   int? tenure;
   double? discountValue;
   String? discountUom;
@@ -42,6 +44,7 @@ class SchemesDataDetail{
       this.productName,
       this.minQty,
       this.tenure,
+      this.minPurchaseValue,
       this.discountValue,
       this.discountUom,
       this.startDate,
@@ -60,6 +63,7 @@ class SchemesDataDetail{
   SchemeDataDetailFields.discountName : discountName,
   SchemeDataDetailFields.productName : productName,
   SchemeDataDetailFields.minQty : minQty,
+  SchemeDataDetailFields.minPurchaseValue : minPurchaseValue,
   SchemeDataDetailFields.tenure : tenure,
   SchemeDataDetailFields.discountValue : discountValue,
   SchemeDataDetailFields.discountUom : discountUom,
@@ -80,7 +84,8 @@ class SchemesDataDetail{
       json['productName'],
       json['minQty'],
       json['tenure'],
-      json['discountValue'],
+       json['minPurchaseValue'],
+       json['discountValue'],
       json['discountUom'],
       json['startDate'],
       json['endDate'],

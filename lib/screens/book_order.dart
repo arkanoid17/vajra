@@ -2,12 +2,14 @@ import 'dart:convert';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vajra/db/cart_item_data_detail/cart_item_data_detail.dart';
 import 'package:vajra/db/cart_item_data_detail/cart_item_distributor_type.dart';
 import 'package:vajra/db/database_helper.dart';
 import 'package:vajra/db/pricing_data_detail/pricing_data_detail.dart';
 import 'package:vajra/db/store_price_mapping_data_detail/store_price_mapping_data_detail.dart';
 import 'package:vajra/db/stores_data_detail/stores_data_detail.dart';
+import 'package:vajra/dialogs/generic_string_popup.dart';
 import 'package:vajra/models/product/pack.dart';
 import 'package:vajra/resource_helper/color_constants.dart';
 import 'package:vajra/resource_helper/strings.dart';
@@ -31,6 +33,8 @@ class BookOrder extends StatefulWidget{
 class _BookOrder extends State<BookOrder>{
 
 
+  late SharedPreferences prefs;
+
   late StoresDataDetail store;
 
   List<ProductDataDetail> productList = [];
@@ -47,8 +51,12 @@ class _BookOrder extends State<BookOrder>{
   Map<int,List<SchemesDataDetail>> mapDiscount = Map();
   Map<int,List<SchemesDataDetail>> mapVisibility = Map();
 
+  bool bottomBarVisible = true;
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  var schemeTypes = [AppStrings.all, AppStrings.qps, AppStrings.discount, AppStrings.visibility];
+  var selectedSchemeType = AppStrings.all;
 
   void getPricings()async {
 
@@ -145,6 +153,12 @@ class _BookOrder extends State<BookOrder>{
   @override
   void initState() {
 
+    AppUtils.getPrefs().then((value) =>
+      setState((){
+        prefs = value;
+      })
+    );
+
     super.initState();
   }
 
@@ -174,6 +188,7 @@ class _BookOrder extends State<BookOrder>{
               Navigator.pop(context);
             }else{
               setState(() {
+                selectedSchemeType = AppStrings.all;
                 --step;
               });
               setCurrentWidget();
@@ -189,7 +204,7 @@ class _BookOrder extends State<BookOrder>{
             child: CircularProgressIndicator(),
           )),
          Padding(padding: EdgeInsets.all(16),
-         child:  Row(
+         child:  bottomBarVisible?Row(
            mainAxisAlignment: MainAxisAlignment.center,
            children: [
              RawMaterialButton(
@@ -246,7 +261,7 @@ class _BookOrder extends State<BookOrder>{
                padding: EdgeInsets.all(15.0),
                shape: CircleBorder(),
              )
-           ],),)
+           ],):Container(),)
         ],
       ),
 
@@ -254,17 +269,18 @@ class _BookOrder extends State<BookOrder>{
   }
 
   void setCurrentWidget(){
-
-
     switch(step){
       case 1:
         setState(() {
+          bottomBarVisible = true;
           currentWidget =  ItemList(itemList: filteredList,instance: instance,addToCart: addToCart,store: store,cartItems: cartItems,updateCartItem: updateCartItem,);
         });
         break;
       case 2:
+        setState(() {
+          bottomBarVisible = false;
+        });
         setSchemes();
-
         break;
 
       default: currentWidget =  ItemList(itemList: filteredList,instance: instance,addToCart: addToCart,store: store, cartItems: cartItems,updateCartItem: updateCartItem, );
@@ -331,6 +347,9 @@ class _BookOrder extends State<BookOrder>{
                 icon: isSearching ? Icon(Icons.cancel) : Icon((Icons.search))
             )
         );
+        break;
+      case 2:
+        actions.add(GenericStringPopup(options: schemeTypes, selectedOption: selectedSchemeType, onPopupChanged: onPopupChanged, child: Icon(Icons.filter_alt_outlined)));
         break;
     }
     return actions;
@@ -425,11 +444,6 @@ class _BookOrder extends State<BookOrder>{
 
   void setSchemes() async {
 
-    var countScheme = await instance.execQuery('SELECT COUNT(*) as cnt FROM ${instance.schemesDataDetail}');
-    for(var cnt in countScheme){
-      print('cnt - ${cnt['cnt']}');
-    }
-
     List<SchemesDataDetail> schemeList = [];
     var schemeData = await instance
         .execQuery('SELECT * FROM ${instance.schemesDataDetail} WHERE ${SchemeDataDetailFields.salesmanId} = $selectedUser');
@@ -438,9 +452,6 @@ class _BookOrder extends State<BookOrder>{
         schemeList.add(SchemesDataDetail.fromJson(scheme));
       }
     }
-
-
-    print('schemes ${schemeData.length}');
 
     List<SchemesDataDetail> discounts = [];
     List<SchemesDataDetail> qps = [];
@@ -456,8 +467,6 @@ class _BookOrder extends State<BookOrder>{
         visibility.add(scheme);
       }
     }
-
-
 
     Map<int,List<SchemesDataDetail>> mapD = Map();
 
@@ -517,9 +526,20 @@ class _BookOrder extends State<BookOrder>{
     });
     //visibility//
 
+
+    ;
+
     setState(() {
-      currentWidget =  SchemeList(itemList: filteredList,instance: instance,mapQps: mapQps,mapDiscount: mapDiscount,mapVisibility: mapVisibility,);
+      currentWidget =  SchemeList(itemList: filteredList,instance: instance,mapQps: mapQps,mapDiscount: mapDiscount,mapVisibility: mapVisibility,prefs:prefs,type: selectedSchemeType,);
     });
+
+  }
+
+  void onPopupChanged(String value) {
+    setState(() {
+      selectedSchemeType = value;
+    });
+    setCurrentWidget();
 
   }
 

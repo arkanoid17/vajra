@@ -181,6 +181,7 @@ class DatabaseHelper {
         '${SchemeDataDetailFields.productName} $text,'
         '${SchemeDataDetailFields.minQty} $integer,'
         '${SchemeDataDetailFields.tenure} $integer,'
+        '${SchemeDataDetailFields.minPurchaseValue} $real,'
         '${SchemeDataDetailFields.discountValue} $real,'
         '${SchemeDataDetailFields.discountUom} $text,'
         '${SchemeDataDetailFields.startDate} $text,'

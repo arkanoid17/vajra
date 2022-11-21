@@ -351,7 +351,7 @@ class _UserSelectionDialog extends State<UserSelectionDialog>{
         schemes.map((scheme) => {
           if(scheme.products !=null){
             scheme.products?.map((schemeProduct) => {
-              detail = SchemesDataDetail(scheme.id, schemeProduct.product!.id , scheme.name, schemeProduct.product!.name, schemeProduct.minQty, scheme.tenure, double.parse(scheme.schemeValue!), scheme.schemeType!.name, scheme.startDate, scheme.endDate, schemeProduct.isFree, scheme.description, scheme.schemeType!.id, scheme.schemeType!.name, id),
+              detail = SchemesDataDetail(scheme.id, schemeProduct.product!.id , scheme.name, schemeProduct.product!.name, schemeProduct.minQty, scheme.tenure,double.parse(scheme.minPurchaseValue!), double.parse(scheme.schemeValue!), scheme.schemeType!.name, scheme.startDate, scheme.endDate, schemeProduct.isFree, scheme.description, scheme.schemeType!.id, scheme.schemeType!.name, id),
               instance.insert(instance.schemesDataDetail, detail.toJson()),
             }),
           }

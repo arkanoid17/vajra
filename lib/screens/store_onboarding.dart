@@ -361,7 +361,7 @@ class _StoreOnboarding extends State<StoreOnboarding> {
                                         context,
                                         '/dynamic-actions',
                                         arguments: {
-                                          'action_id': getOnBoardProcessId()
+                                          'action_id': getOnBoardProcessId(),
                                         }
                                     );
                                   },

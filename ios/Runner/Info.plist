@@ -55,6 +55,10 @@
 	<string>Storage permission required!</string>
 	<key>io.flutter.embedded_views_preview</key>
     <string>YES</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Camera permission is required!</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Microphone permission is required!</string>
 
 </dict>
 </plist>

@@ -343,6 +343,7 @@ class SyncHandler {
       if (schemes.isNotEmpty) {
         SchemesDataDetail detail;
         for (CommonSchemes scheme in schemes) {
+          print(jsonEncode(scheme));
           if (scheme.products != null) {
             for (SchemeProducts schemeProduct in scheme.products!) {
               detail = SchemesDataDetail(
@@ -352,6 +353,7 @@ class SyncHandler {
                   schemeProduct.product!.name,
                   schemeProduct.minQty,
                   scheme.tenure,
+                  double.parse(scheme.minPurchaseValue!),
                   double.parse(scheme.schemeValue!),
                   scheme.schemeType!.name,
                   scheme.startDate,

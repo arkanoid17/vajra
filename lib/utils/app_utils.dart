@@ -9,6 +9,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:vajra/db/database_helper.dart';
@@ -19,7 +20,10 @@ import 'package:vajra/dialogs/user_selection_diaalog.dart';
 import 'package:vajra/models/user_hierarchy/distributor_types.dart';
 import 'package:vajra/services/navigation_service.dart';
 
+import '../db/user_hierarchy_data_detail/user_hierarchy_data_detail.dart';
+import '../models/login/user_permissions.dart';
 import '../models/product/pack.dart';
+import '../models/user_data/user_group.dart';
 
 class AppUtils {
   static const int splashTimeout = 3 * 1000; //3000 milisecond is 3 seconds
@@ -32,6 +36,7 @@ class AppUtils {
 
   static int db_version = 1;
 
+  static String imageFiles = "images";
   static String webFiles = "web_files";
   static String report = "report_files";
 
@@ -322,5 +327,80 @@ class AppUtils {
     'qps':3,
     'visibility':4
   };
+
+  static dynamic getUserFromHierarchy(DatabaseHelper instance,SharedPreferences prefs) async{
+    var employId = getUserData(prefs)!.employId;
+    var hierarchyRaw = await instance.execQuery('SELECT * FROM ${instance.tableUserHierarchyDataDetail} WHERE ${UserHierarchyDataDetailFields.employId} = $employId');
+    if(hierarchyRaw.isNotEmpty){
+      return hierarchyRaw[0];
+    }
+    return null;
+  }
+
+
+
+  static bool checkPermission(SharedPreferences prefs,String codename){
+    UserData? user = getUserData(prefs);
+    if (user!=null) {
+      var groups = user.groups;
+      if (groups!=null && groups.isNotEmpty) {
+        for (UserGroup group in groups) {
+          List<UserPermissions> permissions = group.permissions!=null?group.permissions!:[];
+          if (permissions.isNotEmpty) {
+            for (UserPermissions permission in permissions) {
+              if (permission.codeName == codename) {
+                return true;
+              }
+            }
+          }
+        }
+      }
+      List<UserPermissions> userPermissions = user.userPermissions!=null?user.userPermissions!:[];
+      if (userPermissions.isNotEmpty) {
+        for (UserPermissions permission in userPermissions) {
+          if (permission.codeName ==codename) {
+            return true;
+          }
+        }
+      }
+
+    }
+    return false;
+  }
+
+  static Future<bool> permissionChecker(List<Permission> permissions)async {
+    Map<Permission, PermissionStatus> statuses = await permissions.request();
+
+    bool granted = true;
+
+    for(var permission in permissions){
+      if(statuses[permission] != PermissionStatus.granted){
+        granted = false;
+        break;
+      }
+    }
+
+    return granted;
+  }
+
+  static Future<String> getImagePath(String name)async {
+    Directory directory = await getApplicationDocumentsDirectory();
+    String path = '${directory.path}/$imageFiles';
+    directory = Directory(path);
+    if(!await directory.exists()){
+    directory.create();
+    }
+    final File file = File('${directory.path}/$name');
+    return file.path;
+  }
+
+  static String getCurrency(SharedPreferences prefs){
+    String currency = '';
+    var userData = getUserData(prefs);
+    if(userData!=null){
+      currency = userData.settings!.currency!;
+    }
+    return currency;
+  }
 
 }

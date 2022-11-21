@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:vajra/resource_helper/color_constants.dart';
 import 'package:vajra/resource_helper/strings.dart';
 import 'package:vajra/screens/book_order.dart';
+import 'package:vajra/screens/camera_screen.dart';
 import 'package:vajra/screens/dashboard.dart';
 import 'package:vajra/screens/dynamic_actions_page.dart';
 import 'package:vajra/screens/error_page.dart';
@@ -54,6 +55,11 @@ class MainScreen extends StatelessWidget {
     if (settings.name == '/dynamic-actions') {
       // FooRoute constructor expects SomeObject
       return _buildRoute(settings, DynamicActionsPage(settings.arguments));
+    }
+
+    if (settings.name == '/camera') {
+      // FooRoute constructor expects SomeObject
+      return _buildRoute(settings, CameraScreen(settings.arguments));
     }
 
     return _buildRoute(settings,  ErrorPage());

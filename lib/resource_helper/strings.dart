@@ -127,5 +127,19 @@ class AppStrings {
   static const owner = 'Owner';
   static const addToMyBeats = 'Add to my beats';
   static const addNewStore = 'Add new store';
+  static const qps = 'QPS';
+  static const discount = 'Discount';
+  static const visibility = 'Visibility';
+  static const buy = 'Buy';
+  static const get = 'Get';
+  static const itemsOf = 'items of';
+  static const addSchemeToCart = 'Add scheme to cart';
+  static const getDiscountOf = 'Get discount of';
+  static const worth = 'Worth';
+  static const andMaintainDisplayOf = 'And maintain display for';
+  static const days = 'days';
+  static const toGet = 'to get';
+  static const offerValue = 'Offer Value';
+  static const all = 'All';
 
 }

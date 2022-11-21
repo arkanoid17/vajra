@@ -5,7 +5,7 @@ class APIServices {
   static const String userData = 'salesman/get_user_data/';
   static const String products = 'get_products/';
   static const String schemeServices = 'salesman/common-schemes/';
-  static const String channelServices = 'salesman/common-schemes/';
+  static const String channelServices = 'portal/api/channel/';
   static const String placeServices = 'place/?page_size=10000';
   static const String tasksServices = 'process/user-tasks/';
   static const String activityService = 'salesman/activities/';
