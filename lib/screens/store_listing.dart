@@ -97,17 +97,24 @@ class _StoreListing extends State<StoreListing> {
       distanceFilter: AppUtils.getDistanceLocationUpdate(prefs!),
       timeLimit: Duration(seconds: AppUtils.getTimeLocationUpdate(prefs!)),
     );
-    positionStream =
-        Geolocator.getPositionStream(locationSettings: locationSettings)
-            .listen((Position? position) {
-      if (position != null) {
-        setState(() {
-          fetchingLocation = false;
-          location = position;
-        });
-        updateLocationChange();
-      }
+    try{
+    positionStream = Geolocator.getPositionStream(locationSettings: locationSettings).listen((Position? position) {
+
+
+        if (position != null ) {
+          setState(() {
+            fetchingLocation = false;
+            location = position;
+          });
+          updateLocationChange();
+        }else{
+          AppUtils.showMessage('mocked!');
+        }
+
     });
+    }catch(e){
+      print('error -${e.toString()}');
+    }
   }
 
   void updateLocationChange() {
@@ -219,6 +226,7 @@ class _StoreListing extends State<StoreListing> {
       setState(() {
         listUser = selectors.isNotEmpty ? selectors : [];
       });
+      getLocation();
     }
   }
 
@@ -226,11 +234,19 @@ class _StoreListing extends State<StoreListing> {
 
     if(selectedBeats.isEmpty){
       List<UserHierarchyBeat> beats = [];
+
+      print('users- ${listUser.length}');
+
       for (UserSelector user in listUser) {
+        print(user.id);
+        print(selectedUser);
         if (user.id == selectedUser) {
           beats.addAll(user.beats != null ? user.beats! : []);
         }
       }
+
+      print('beatLngth - ${beats.length}');
+
       if (beats.isNotEmpty) {
         int wk =
         AppUtils.weekOfTheMonth(DateFormat('dd/MM/yyyy').parse(todayDate));
@@ -248,6 +264,8 @@ class _StoreListing extends State<StoreListing> {
             }
           }
         }
+
+        print('todayBeats - ${todayBeats.length}');
 
         if (todayBeats.isNotEmpty) {
           setState(() {
@@ -373,8 +391,7 @@ class _StoreListing extends State<StoreListing> {
         location!.longitude,
       );
 
-      instance.execQuery(
-          'UPDATE ${instance.storeDataDetail} SET distance = $distance');
+      instance.execQuery('UPDATE ${instance.storeDataDetail} SET distance = $distance');
 
       storeList[pos].distance = distance;
     }
@@ -382,7 +399,11 @@ class _StoreListing extends State<StoreListing> {
     setState(() {
       stores = storeList;
     });
-    selectUserTodayBeat();
+    try {
+      selectUserTodayBeat();
+    }catch(e){
+      print('error - ${e.toString()}');
+    }
   }
 
   @override
@@ -407,7 +428,7 @@ class _StoreListing extends State<StoreListing> {
                       : '');
             }),
             getStoreTypes(),
-            getLocation(),
+
           });
     }
 
@@ -1086,39 +1107,43 @@ class _StoreListing extends State<StoreListing> {
         break;
       case 2:
         // do a non geo fence order
-        AppUtils.showDialog(
-            context,
-            AlertDialogDisplay(
-              title: AppStrings.appName,
-              content: AppStrings.cannotOrderFromStore.replaceAll('~~%%', AppUtils.getGeoRadius(prefs!))+'\n\n${AppStrings.locationAccuracy}: ${location!.accuracy}',
-              buttonText: AppStrings.okay,
-              action: goToOrder,
-            )
-        );
+        if(mounted){
+          AppUtils.showDialog(
+              context,
+              AlertDialogDisplay(
+                title: AppStrings.appName,
+                content: AppStrings.cannotOrderFromStore.replaceAll('~~%%', AppUtils.getGeoRadius(prefs!))+'\n\n${AppStrings.locationAccuracy}: ${location!.accuracy}',
+                buttonText: AppStrings.okay,
+                action: goToOrder,
+              )
+          );
+        }
         break;
       case 3:
         // geo fence order
         break;
       case 4:
       // Far from store
-        AppUtils.showDialog(
-            context,
-            AlertDialogDisplay(
+        if(mounted){
+          AppUtils.showDialog(
+              context,
+              AlertDialogDisplay(
                 title: AppStrings.appName,
-                content: AppStrings.cannotOrderFromStore.replaceAll('~~%%', AppUtils.getGeoRadius(prefs!))+'\n\n${AppStrings.locationAccuracy}: ${location!.accuracy}',
+                content: AppStrings.cannotOrderFromStore.replaceAll('~~%%', AppUtils.getGeoRadius(prefs!))+'\n\n${AppStrings.locationAccuracy}: ${location!.accuracy.toStringAsFixed(2)}',
                 buttonText: AppStrings.close,
                 action: (){
                   setState(() {
                     selectedIndex = -1;
                   });
                 },
-            )
-        );
+              )
+          );
+        }
         break;
     }
   }
 
-    goToOrder(BuildContext ctx) {
+    void goToOrder(BuildContext ctx) {
     Navigator.pushNamed(
         ctx,
         '/book-order',

@@ -119,6 +119,7 @@ class _CameraScreen extends State<CameraScreen> {
                             file.saveTo(f.path);
                             setState(() {
                               isImageCaptured = true;
+                              path = f.path;
                             });
                           }
                         });
@@ -171,7 +172,8 @@ class _CameraScreen extends State<CameraScreen> {
                               onTap: () {
                                 File file = File(path);
                                 //saveImageToDb(file);
-                                callback(callbackName,file.path.split(Platform.pathSeparator).last,file.path);
+                                callback(callbackName,file.path.split(Platform.pathSeparator).last,Uri(scheme: 'file', path: path).toString());
+
                                 Navigator.pop(context);
                               },
                               child: cameraButton(

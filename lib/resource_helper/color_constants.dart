@@ -33,5 +33,7 @@ class ColorConstants {
   static const Color notVisitedColor = Color.fromARGB(255, 236, 34 , 13);
   static const Color color_ECE6F6_FF = Color.fromARGB(255, 236, 230 , 246);
   static const Color color_7E5BC0_FF = Color.fromARGB(255, 126, 91 , 192);
+  static const Color color_646464_FF = Color.fromARGB(246, 246, 246 , 255);
+  static const Color color_666666_FF = Color.fromARGB(102, 102, 102 , 255);
 
 }

@@ -174,4 +174,6 @@ class ProductDataDetail {
           json['brand'],
           json['schemeId'],
           json['schemeCount']);
+
+
 }

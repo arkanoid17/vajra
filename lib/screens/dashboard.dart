@@ -373,7 +373,8 @@ class _Dashboard extends State<Dashboard> {
                                       center: Text(
                                         '${percentage.toInt()}%',
                                         style: const TextStyle(
-                                            color: Colors.white, fontSize: 10),
+                                            color: Colors.white, fontSize: 10
+                                        ),
                                       ),
                                       progressColor: Colors.white,
                                     )
@@ -407,7 +408,8 @@ class _Dashboard extends State<Dashboard> {
                                       const Text(
                                         AppStrings.welcomeToApplication,
                                         style: TextStyle(
-                                            color: Colors.white, fontSize: 15),
+                                            color: Colors.white, fontSize: 15
+                                        ),
                                       ),
                                       const SizedBox(
                                         width: 1,

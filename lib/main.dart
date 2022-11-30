@@ -30,6 +30,7 @@ class MainScreen extends StatelessWidget {
 
       title: AppStrings.appName,
       theme: ThemeData(
+        fontFamily: 'OpenSans',
         primarySwatch: ColorConstants.colorTheme,
       ),
       navigatorKey: NavigationService.navigatorKey,

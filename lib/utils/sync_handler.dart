@@ -11,6 +11,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:vajra/db/activity_data_detail/activity_data_detail.dart';
 import 'package:vajra/db/channel_data_detail/channel_data_detail.dart';
 import 'package:vajra/db/database_helper.dart';
+import 'package:vajra/db/distributor_data_detail/distributor_data_detail.dart';
 import 'package:vajra/db/form_actions_data_detail/form_action_data_details.dart';
 import 'package:vajra/db/pending_task_data_detail/pending_task_data_detail.dart';
 import 'package:vajra/db/places_data_detail/places_data_detail.dart';
@@ -50,6 +51,7 @@ import 'package:vajra/models/stores_data/store_response.dart';
 import 'package:vajra/models/user_data/user_data.dart';
 import 'package:vajra/models/user_hierarchy/distributor_types.dart';
 import 'package:vajra/models/user_hierarchy/user_hierarchy.dart';
+import 'package:vajra/models/user_hierarchy/user_hierarchy_salesman_distributors.dart';
 import 'package:vajra/models/user_stats_data/user_stats_data.dart';
 import 'package:vajra/resource_helper/strings.dart';
 import 'package:vajra/services/APIServices.dart';
@@ -232,9 +234,15 @@ class SyncHandler {
             element.createdBy,
             element.updatedBy);
 
+        // create distributors and their mapping in a seperate table
+
+
         Map<String, dynamic> mapHierarchy = detail.toJson();
 
         instance.insert(instance.tableUserHierarchyDataDetail, mapHierarchy);
+
+        handleDistributors(element.salesmanDistributors,element.id!);
+
 
         if (element.employId == prefs.getString("user_id")) {
           if (element.isSalesman!) {
@@ -308,8 +316,10 @@ class SyncHandler {
               0);
           isInserted = await instance.insert(instance.productDataDetail, product.toJson());
           if(prd.distributorTypes!=null && prd.distributorTypes!.isNotEmpty){
+            await instance.execQuery('DELETE FROM ${instance.productDataDistributorTypeDataDetail} WHERE ${ProductDataDistributorTypeDataDetailFields.productId} = ${prd.productId} AND ${ProductDataDistributorTypeDataDetailFields.salesmanId} = $id');
             for(DistributorTypes type in prd.distributorTypes!){
-              ProductDataDistributorTypeDataDetail detail = ProductDataDistributorTypeDataDetail(prd.productId, AppUtils.getSalesman(prefs), type.id, type.name);
+
+              ProductDataDistributorTypeDataDetail detail = ProductDataDistributorTypeDataDetail(prd.productId, id, type.id, type.name);
               instance.insert(instance.productDataDistributorTypeDataDetail, detail.toJson());
             }
           }
@@ -952,5 +962,27 @@ class SyncHandler {
     return p;
     }
     return null;
+  }
+
+  void handleDistributors(List<UserHierarchySalesmanDistributor>? salesmanDistributors, int id) async {
+    if(salesmanDistributors!=null && salesmanDistributors.isNotEmpty){
+      await instance.execQuery('DELETE FROM ${instance.distributorDataDetail} WHERE ${DistributorDataDetailFields.salesmanId} = $id');
+      for(UserHierarchySalesmanDistributor distributor in salesmanDistributors){
+        DistributorDataDetail detail = DistributorDataDetail(
+            distributor.id!,
+            distributor.name,
+            distributor.code,
+            distributor.contactNumber,
+            distributor.type,
+            distributor.distributorStatus,
+            distributor.emailId,
+            id,
+            distributor.territories?.join(','),
+            jsonEncode(distributor.distributorTypes?.map((e) => e.toJson()).toList())
+        );
+
+        instance.insert(instance.distributorDataDetail, detail.toJson());
+      }
+    }
   }
 }

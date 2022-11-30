@@ -4,7 +4,11 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vajra/db/cart_item_data_detail/cart_item_data_detail.dart';
 import 'package:vajra/db/schemes_data_detail/schemes_data_detail.dart';
+import 'package:vajra/dialogs/add_discount_dialog.dart';
+import 'package:vajra/dialogs/add_qps_dialog.dart';
+import 'package:vajra/dialogs/add_visibility_dialog.dart';
 import 'package:vajra/resource_helper/color_constants.dart';
 import 'package:vajra/utils/app_utils.dart';
 
@@ -14,6 +18,7 @@ import '../models/common_schemes/common_schemes.dart';
 import '../resource_helper/strings.dart';
 
 class SchemeList extends StatefulWidget {
+
   final DatabaseHelper instance;
   final List<ProductDataDetail> itemList;
   final Map<int, List<SchemesDataDetail>> mapQps;
@@ -21,6 +26,11 @@ class SchemeList extends StatefulWidget {
   final Map<int, List<SchemesDataDetail>> mapVisibility;
   final SharedPreferences prefs;
   final String type;
+  final List<int> filterKey;
+  final int selectedUser;
+  final Function addSchemeToCart;
+  final Function navigateToCart;
+  final List<CartItemDataDetail> cartItems;
 
   const SchemeList(
       {Key? key,
@@ -30,7 +40,13 @@ class SchemeList extends StatefulWidget {
       required this.mapDiscount,
       required this.mapVisibility,
       required this.prefs,
-        required this.type})
+      required this.type,
+      required this.filterKey,
+      required this.selectedUser,
+      required this.addSchemeToCart,
+      required this.navigateToCart,
+      required this.cartItems,
+      })
       : super(key: key);
 
   State<SchemeList> createState() => _SchemeList();
@@ -87,14 +103,14 @@ class _SchemeList extends State<SchemeList> {
                       height: 30,
                         child: ElevatedButton(
                           onPressed: () {
-
+                            showAddSchemeDialog(keys[index]);
                           },
                           child:Wrap(
                             children: [
-                              Icon(Icons.add,size: 14,),
+                              checkIfSchemeAdded(keys[index])?Container():Icon(Icons.add,size: 14,),
                               SizedBox(width: 5,),
                               Text(
-                                AppStrings.add.toUpperCase(),
+                                checkIfSchemeAdded(keys[index])?AppStrings.added.toUpperCase():AppStrings.add.toUpperCase(),
                                 style: TextStyle(
                                     color:
                                     Colors.white,
@@ -187,139 +203,61 @@ class _SchemeList extends State<SchemeList> {
   getSchemeView(int key) {
     switch(getSchemeType(key)){
       case AppStrings.qps:
-        return getQpsView(widget.mapQps[key]!);
+        return AppUtils.getQpsView(widget.mapQps[key]!);
       case AppStrings.discount:
-        return getDiscountView(widget.mapDiscount[key]!);
+        return AppUtils.getDiscountView(widget.mapDiscount[key]!,widget.prefs);
       case AppStrings.visibility:
-        return getVisibilityView(widget.mapVisibility[key]!);
+        return AppUtils.getVisibilityView(widget.mapVisibility[key]!,widget.prefs);
       default: return Container();
     }
   }
 
-  getItemRows(List<SchemesDataDetail> paid) {
-    List<Widget> widgets = [];
-    for (SchemesDataDetail scheme in paid){
-      widgets.add(Row(
-        children: [
-          Expanded(
-              child: Text('${scheme.minQty} ${AppStrings.itemsOf}',style: TextStyle(fontSize: 12,fontWeight: FontWeight.w600,color: Colors.black),)
-          ),
-          Text(scheme.productName!,style: TextStyle(fontSize: 12,fontWeight: FontWeight.w600,color: Colors.black))
-        ],
-      )) ;
+
+
+
+
+
+
+
+
+
+
+  void showAddSchemeDialog(int key) {
+    print(getSchemeType(key));
+    switch(getSchemeType(key)){
+      case AppStrings.qps:
+        showAddQpsDialog(widget.mapQps[key]);
+        break;
+      case AppStrings.discount:
+        showAddDiscountDialog(widget.mapDiscount[key]);
+        break;
+      case AppStrings.visibility:
+        showAddVisibilityDialog(widget.mapVisibility[key]);
+        break;
     }
-    return widgets;
   }
 
-  Widget getQpsView(List<SchemesDataDetail> list) {
-    List<SchemesDataDetail> free = list.where((element) => element.isQps!).toList();
-    List<SchemesDataDetail> paid = list.where((element) => !element.isQps!).toList();
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(height: 5,),
-          Text(AppStrings.buy,style: TextStyle(color: Colors.grey,fontSize: 12),),
-          SizedBox(height: 10,),
-          Column(children: getItemRows(paid),),
-          SizedBox(height: 10,),
-          Text(AppStrings.get,style: TextStyle(color: Colors.grey,fontSize: 12),),
-          SizedBox(height: 10,),
-          Column(children: getItemRows(free),),
-          SizedBox(height: 10,),
-        ],
-      )
-    );
+  void showAddQpsDialog(List<SchemesDataDetail>? qpsList) {
+    AppUtils.showBottomDialog(context,true,true,Colors.white,AddToQps(qpsList: qpsList!,selectedUser: widget.selectedUser,items: widget.itemList,prefs: widget.prefs,addSchemeToCart: widget.addSchemeToCart,));
   }
 
-  getDiscountView(List<SchemesDataDetail> list) {
-    List<SchemesDataDetail> paid = list.where((element) => !element.isQps!).toList();
-    return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 5,),
-            const Text(AppStrings.buy,style: TextStyle(color: Colors.grey,fontSize: 12),),
-            const SizedBox(height: 10,),
-            Column(children: getItemRows(paid),),
-            const SizedBox(height: 20,),
-            Wrap(
-              children: [
-                Text(AppStrings.getDiscountOf,style: TextStyle(color: Colors.grey,fontSize: 12),),
-                SizedBox(width: 5,),
-                getDiscountAmountView(paid[0])
-              ],
-            )
-          ],
-        )
-    );
+  void showAddDiscountDialog(List<SchemesDataDetail>? discountList) {
+    AppUtils.showBottomDialog(context,true,true,Colors.white,AddToDiscount(discountList: discountList!,selectedUser: widget.selectedUser,items: widget.itemList,prefs: widget.prefs,addSchemeToCart: widget.addSchemeToCart,));
   }
 
-  getDiscountAmountView(SchemesDataDetail disc) {
-    Widget view = Container();
-    if(disc.discountUom=='INR') {
-      view = Text('${AppUtils.getCurrency(widget.prefs)} ${disc.discountValue}',style: TextStyle(color: Colors.black,fontSize: 12,fontWeight: FontWeight.w600),);
+  void showAddVisibilityDialog(List<SchemesDataDetail>? visibilityList) {
+    AppUtils.showBottomDialog(context,true,true,Colors.white,AddToVisibility(visibilityList: visibilityList!,selectedUser: widget.selectedUser,items: widget.itemList,prefs: widget.prefs,addSchemeToCart: widget.addSchemeToCart,));
+  }
+
+  bool checkIfSchemeAdded(int key) {
+    for(var item in widget.cartItems){
+      if(item.schemeId==key) {
+        return true;
+      }
     }
-    if(disc.discountUom=='%') {
-      view = Text('${disc.discountValue} ${disc.discountUom}',style: TextStyle(color: Colors.black,fontSize: 12,fontWeight: FontWeight.w600),);
-    }
-    return view;
+    return false;
   }
 
-  getVisibilityView(List<SchemesDataDetail> list) {
-    List<SchemesDataDetail> paid = list.where((element) => !element.isQps!).toList();
-    return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 5,),
-            const Text(AppStrings.buy,style: TextStyle(color: Colors.grey,fontSize: 12),),
-            const SizedBox(height: 10,),
-            Column(children: getVisibilityItemRows(paid),),
-            const SizedBox(height: 20,),
-            Row(
-              children: [
-                Expanded(child: Text('${AppStrings.worth}:',style: TextStyle(fontSize: 12,color: Colors.grey),)),
-                Text('${paid[0].minPurchaseValue}',style: TextStyle(fontSize: 12,color: Colors.black,fontWeight: FontWeight.w600),),
-              ],
-            ),
-            const SizedBox(height: 10,),
-            Row(
-              children: [
-                Text('${AppStrings.andMaintainDisplayOf} ',style: TextStyle(fontSize: 12,color: Colors.grey),),
-                Text('${paid[0].tenure} ${AppStrings.days} ',style: TextStyle(fontSize: 12,color: Colors.black,fontWeight: FontWeight.w600),),
-                Text('${AppStrings.toGet} ',style: TextStyle(fontSize: 12,color: Colors.grey),),
-              ],
-            ),
-            const SizedBox(height: 10,),
-            Row(
-              children: [
-                const Expanded(child: Text('${AppStrings.offerValue}:',style: TextStyle(fontSize: 12,color: Colors.grey),)),
-                Text('${AppUtils.getCurrency(widget.prefs)} ${paid[0].discountValue}',style: TextStyle(fontSize: 12,color: Colors.black,fontWeight: FontWeight.w600),),
-              ],
-            ),
-          ],
-        )
-    );
-  }
 
-  getVisibilityItemRows(List<SchemesDataDetail> paid) {
-    List<Widget> widgets = [];
-    for (SchemesDataDetail scheme in paid){
-      widgets.add(Row(
-        children: [
-          Expanded(
-              child: Text(scheme.productName!,style: TextStyle(fontSize: 12,fontWeight: FontWeight.w600,color: Colors.black))
-          ),
-        ],
-      )) ;
-    }
-    return widgets;
-  }
+
 }

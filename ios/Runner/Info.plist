@@ -59,6 +59,10 @@
     <string>Camera permission is required!</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Microphone permission is required!</string>
+    <key>NSAllowsArbitraryLoads</key>
+    <true/>
+    <key>NSAllowsLocalNetworking</key>
+    <true/>
 
 </dict>
 </plist>

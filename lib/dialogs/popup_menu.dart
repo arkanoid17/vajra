@@ -34,7 +34,7 @@ class _PopupMenuDialog extends State<PopupMenuDialog> {
             Text(widget.selected,
             style: const TextStyle(color: Colors.white, fontSize: 16)),
             const SizedBox(width: 5,height: 1),
-            const Icon(Icons.arrow_drop_down,color: Colors.white,)
+            const Icon(Icons.expand_more,color: Colors.white,)
           ],
         )
     );

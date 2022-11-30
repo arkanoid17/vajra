@@ -19,25 +19,27 @@ class AlertDialogDisplay extends StatefulWidget{
 
   @override
   State<AlertDialogDisplay> createState() => _AlertDialogDisplay();
-  
+
 }
 
 class _AlertDialogDisplay extends State<AlertDialogDisplay>{
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-
-      title: Text(widget.title,style: TextStyle(color: Colors.black,fontSize: 18,fontWeight: FontWeight.w700),),
+      title: Text(widget.title,style: const TextStyle(color: Colors.black,fontSize: 18,fontWeight: FontWeight.w700),),
       content: Text(widget.content),
       actions: [
-        TextButton(onPressed: ()=> {
-            Navigator.pop(context),
-            widget.action(context)
+        TextButton(onPressed: () {
+           if(mounted){
+             print(widget.action.toString());
+             Navigator.pop(context);
+             widget.action(context);
+           }
         }, child: Text(widget.buttonText))
       ],
     );
   }
 
 
-  
-} 
+
+}

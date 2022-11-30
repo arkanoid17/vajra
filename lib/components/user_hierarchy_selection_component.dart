@@ -77,7 +77,7 @@ class _UserHierarchySelectionComponent extends State<UserHierarchySelectionCompo
         child: Padding(padding: EdgeInsets.all(8),child: Row(
           children: [
             Expanded(child: Text(AppStrings.select,style: TextStyle(color: Colors.grey,fontSize: 16),),flex: 9,),
-            Expanded(child: Icon(Icons.arrow_drop_down,color: Colors.grey,),flex: 1,)
+            Expanded(child: Icon(Icons.expand_more,color: Colors.grey,),flex: 1,)
             
           ],
         ),),
@@ -128,7 +128,7 @@ class _UserHierarchySelectionComponent extends State<UserHierarchySelectionCompo
               )
             ],
           ),flex: 9,),
-          Expanded(child: Icon(Icons.arrow_drop_down,color: Colors.grey,),flex: 1,)
+          Expanded(child: Icon(Icons.expand_more,color: Colors.grey,),flex: 1,)
         ],
       ),),
     ),

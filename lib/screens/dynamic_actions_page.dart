@@ -155,6 +155,7 @@ class _DynamicActionsPage extends State<DynamicActionsPage> {
 
     setState(() {
       webView = WebView(
+
         debuggingEnabled: true,
         initialUrl: Uri.dataFromString(fileText,
                 mimeType: 'text/html', encoding: Encoding.getByName('utf-8'))
@@ -280,7 +281,7 @@ class _DynamicActionsPage extends State<DynamicActionsPage> {
       data = jsonEncode(userData);
     }
 
-    _controller?.runJavascript("getUserData('')");
+    _controller?.runJavascript("getUserData('$data')");
   }
 
   void getVisitId() {
@@ -412,8 +413,8 @@ class _DynamicActionsPage extends State<DynamicActionsPage> {
     }
   }
 
-  void imageCallback(String callback,String name,String path){
-    print("$callback('$name','$path')");
+  void imageCallback(String callback,String name,String path)async{
+
     _controller?.runJavascript("$callback('$name','$path')");
   }
 

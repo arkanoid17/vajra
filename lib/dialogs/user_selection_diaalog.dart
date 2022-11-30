@@ -119,7 +119,7 @@ class _UserSelectionDialog extends State<UserSelectionDialog>{
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
                               Text(userType,style: TextStyle(color: Colors.grey,fontSize: 12),),
-                              Icon(Icons.arrow_drop_down,color: Colors.grey,)
+                              Icon(Icons.expand_more,color: Colors.grey,)
                             ],
                           )
                           ),

@@ -24,8 +24,10 @@ class ItemList extends StatefulWidget {
   final StoresDataDetail store;
   final List<CartItemDataDetail> cartItems;
   final Function updateCartItem;
+  final Function onSchemeFiltered;
+  final int selectedUser;
 
-  const ItemList({Key? key, required this.itemList, required this.instance, required this.addToCart, required this.store, required this.cartItems, required this.updateCartItem}) : super(key: key);
+  const ItemList({Key? key, required this.itemList, required this.instance, required this.addToCart, required this.store, required this.cartItems, required this.updateCartItem, required this.onSchemeFiltered, required this.selectedUser}) : super(key: key);
 
   State<ItemList> createState() => _ItemList();
 }
@@ -38,8 +40,6 @@ class _ItemList extends State<ItemList> {
     setState(() {
       instance = widget.instance;
     });
-
-
     super.initState();
   }
 
@@ -95,7 +95,7 @@ class _ItemList extends State<ItemList> {
                             mainAxisAlignment: MainAxisAlignment.start,
                             children: [
                               Expanded(child: Text(getPackName(widget.itemList[index].packs),style: TextStyle(color: Colors.grey),)),
-                              Icon(Icons.arrow_drop_down,color: Colors.grey.shade400,)
+                              Icon(Icons.expand_more,color: Colors.grey.shade400,)
                             ],
                           ),
                           decoration: BoxDecoration(
@@ -155,13 +155,23 @@ class _ItemList extends State<ItemList> {
                       alignment: Alignment.topRight,
                       children: [
                         Image.asset('assets/images/ic_product_default.png'),
-                        widget.itemList[index].isFeatureProduct!?Text(AppStrings.featured,style: TextStyle(
-                            color: Colors.green
-                        ),):Container(),
+                        widget.itemList[index].isFeatureProduct!?
+                        Container(
+                          padding: EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            color: ColorConstants.billedColor,
+                            borderRadius: BorderRadius.only(topRight: Radius.circular(4))
+                          ),
+                          child: Text(AppStrings.featured,style: TextStyle(
+                              color: Colors.white,fontSize: 10
+                          ),),
+                        ):Container(),
                       ],
                     ),
                     Container(
-                      height: 25,
+                      margin: EdgeInsets.all(5),
+                      width: double.infinity,
+                      height: 30,
                       child: productExistInCart(widget.itemList[index].productId)?
                       Container(
                         decoration: BoxDecoration(
@@ -210,22 +220,27 @@ class _ItemList extends State<ItemList> {
             ),
           ),
 
-                widget.itemList[index].schemeCount!>0? Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius:
-                    BorderRadius.all(Radius.circular(0)),
-                    border: Border.all(
-                        color: ColorConstants.color_FFE5E5E5,
-                        width: 1),
-                  ),
-                  padding: EdgeInsets.all(8),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Image.asset('assets/images/ic_primary_schemes.png'),
-                      Text('  ${widget.itemList[index].schemeCount!} ${AppStrings.schemesAvailable}',style: TextStyle(color: ColorConstants.colorPrimary,fontSize: 12,fontWeight: FontWeight.w400),)
-                    ],
+                widget.itemList[index].schemeCount!>0? InkWell(
+                  onTap: (){
+                    showProductSchemes(widget.itemList[index].productId);
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      borderRadius:
+                      BorderRadius.all(Radius.circular(0)),
+                      border: Border.all(
+                          color: ColorConstants.color_FFE5E5E5,
+                          width: 1),
+                    ),
+                    padding: EdgeInsets.all(8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Image.asset('assets/images/ic_primary_schemes.png'),
+                        Text('  ${widget.itemList[index].schemeCount!} ${AppStrings.schemesAvailable}',style: TextStyle(color: ColorConstants.colorPrimary,fontSize: 12,fontWeight: FontWeight.w400),)
+                      ],
+                    ),
                   ),
                 ) :Container(),
                 Container(
@@ -288,7 +303,8 @@ class _ItemList extends State<ItemList> {
   onAddPressed(int index) async {
     Pack selectedPack = AppUtils.getSelectedPack(widget.itemList[index].packs);
 
-    List<ProductDataDistributorTypeDataDetail> types = await AppUtils.getDistributorTypes(widget.itemList[index].productId!,instance);
+    List<ProductDataDistributorTypeDataDetail> types = await AppUtils.getDistributorTypes(widget.itemList[index].productId!,widget.selectedUser,instance);
+
 
     List<int> typeIds = [];
     List<String> typeNames = [];
@@ -298,10 +314,12 @@ class _ItemList extends State<ItemList> {
       typeNames.add(type.distributorTypeName!);
     }
 
+    print(widget.itemList[index].isQps);
+
     widget.addToCart(
       widget.itemList[index],
       selectedPack.name,
-      widget.itemList[index].isQps,
+      false,
       1,
       0,
       typeIds,
@@ -321,7 +339,7 @@ class _ItemList extends State<ItemList> {
 
   getPackCount(int? id) {
     var item = getIteminCart(id);
-    return item!=null?item.packCount:0;
+    return (item!=null && !item.isFree!)?item.packCount:0;
   }
 
   getCount(int id) {
@@ -347,6 +365,15 @@ class _ItemList extends State<ItemList> {
         packCount
       );
     }
+  }
+
+  void showProductSchemes(int? productId) async {
+    var values = await instance.execQuery('SELECT ${SchemeDataDetailFields.discountId} FROM ${instance.schemesDataDetail} WHERE ${SchemeDataDetailFields.productId} = $productId AND ${SchemeDataDetailFields.isQps} = ${false} GROUP BY ${SchemeDataDetailFields.discountId}');
+    List<int> ids = [];
+    for(var id in values){
+      ids.add(id[SchemeDataDetailFields.discountId]);
+    }
+    widget.onSchemeFiltered(ids);
   }
 
 }

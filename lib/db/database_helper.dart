@@ -8,6 +8,7 @@ import 'package:vajra/db/activity_data_detail/activity_data_detail.dart';
 import 'package:vajra/db/cart_item_data_detail/cart_item_data_detail.dart';
 import 'package:vajra/db/cart_item_data_detail/cart_item_distributor_type.dart';
 import 'package:vajra/db/channel_data_detail/channel_data_detail.dart';
+import 'package:vajra/db/distributor_data_detail/distributor_data_detail.dart';
 import 'package:vajra/db/form_actions_data_detail/form_action_data_details.dart';
 import 'package:vajra/db/pending_task_data_detail/pending_task_data_detail.dart';
 import 'package:vajra/db/places_data_detail/places_data_detail.dart';
@@ -52,6 +53,7 @@ class DatabaseHelper {
   final String cartItemDataDetail = 'cart_item_data_detail';
   final String cartItemDistributorTypeDataDetail = 'cart_item_distributor_type_data_detail';
   final String productDataDistributorTypeDataDetail = 'product_data_distributor_type_data_detail';
+  final String distributorDataDetail = 'distributor_data_detail';
 
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
 
@@ -441,6 +443,21 @@ class DatabaseHelper {
         'FOREIGN KEY(${CartItemDistributorTypeFields.cartId}) REFERENCES ${instance.cartItemDataDetail}(${CartItemDataDetailFields.id}) ON UPDATE NO ACTION ON DELETE CASCADE'
         ')');
 
+    await db.execute('CREATE TABLE ${instance.distributorDataDetail}'
+        '('
+        '${DistributorDataDetailFields.id} $primaryKeyAutoIncrement,'
+        '${DistributorDataDetailFields.distributorId} $integer,'
+        '${DistributorDataDetailFields.name} $text,'
+        '${DistributorDataDetailFields.code} $text,'
+        '${DistributorDataDetailFields.contactNumber} $text,'
+        '${DistributorDataDetailFields.type} $text,'
+        '${DistributorDataDetailFields.distributorStatus} $bool,'
+        '${DistributorDataDetailFields.emailId} $text,'
+        '${DistributorDataDetailFields.salesmanId} $integer,'
+        '${DistributorDataDetailFields.territories} $text,'
+        '${DistributorDataDetailFields.types} $text'
+        ')'
+    );
 
 
   }

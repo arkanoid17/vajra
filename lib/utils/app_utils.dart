@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:core';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -13,17 +15,22 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:vajra/db/database_helper.dart';
+import 'package:vajra/db/distributor_data_detail/distributor_data_detail.dart';
+import 'package:vajra/db/product_data_detail/product_data_detail.dart';
 import 'package:vajra/db/product_distributor_type_data_detail/product_distributor_type_data_detail.dart';
 import 'package:vajra/db/stores_data_detail/stores_data_detail.dart';
 import 'package:vajra/models/user_data/user_data.dart';
 import 'package:vajra/dialogs/user_selection_diaalog.dart';
 import 'package:vajra/models/user_hierarchy/distributor_types.dart';
+import 'package:vajra/models/user_hierarchy/user_hierarchy.dart';
 import 'package:vajra/services/navigation_service.dart';
 
+import '../db/schemes_data_detail/schemes_data_detail.dart';
 import '../db/user_hierarchy_data_detail/user_hierarchy_data_detail.dart';
 import '../models/login/user_permissions.dart';
 import '../models/product/pack.dart';
 import '../models/user_data/user_group.dart';
+import '../resource_helper/strings.dart';
 
 class AppUtils {
   static const int splashTimeout = 3 * 1000; //3000 milisecond is 3 seconds
@@ -295,28 +302,31 @@ class AppUtils {
     return df.format(DateTime.now());
   }
 
-  static Pack getSelectedPack(String? packs) {
-    if(packs!=null){
-      List<dynamic> parsedListJson = jsonDecode(packs);
-      List<Pack> productPacks = List<Pack>.from(parsedListJson.map<Pack>((dynamic i) => Pack.fromJson(i)));
-      for(Pack pack in productPacks){
-        if(pack.isSelected!) {
-          return pack;
-        }
+  static Pack getSelectedPack(String? packs){
+    List<dynamic> parsedListJson = jsonDecode(packs!);
+    List<Pack> productPacks = List<Pack>.from(parsedListJson.map<Pack>((dynamic i) => Pack.fromJson(i)));
+    for(Pack p in productPacks){
+      if(p.isSelected!){
+        return p;
       }
     }
-    return Pack(0, '', 'units', 'units', 1, true, AppUtils.getNowDateAndTime(), AppUtils.getNowDateAndTime(), 0, true);
+    return productPacks[0];
   }
 
-  static Future<List<ProductDataDistributorTypeDataDetail>> getDistributorTypes(int productId,DatabaseHelper instance) async {
+  static Future<List<ProductDataDistributorTypeDataDetail>> getDistributorTypes(int productId,int selecteduser,DatabaseHelper instance) async {
 
     List<ProductDataDistributorTypeDataDetail> distTypes = [];
 
-    var types = await instance.execQuery('SELECT * FROM ${instance.productDataDistributorTypeDataDetail} WHERE ${ProductDataDistributorTypeDataDetailFields.productId} = $productId');
+    var types = await instance.execQuery('SELECT * FROM ${instance.productDataDistributorTypeDataDetail} WHERE ${ProductDataDistributorTypeDataDetailFields.productId} = $productId AND ${ProductDataDistributorTypeDataDetailFields.salesmanId} = $selecteduser');
+
 
     for(var type in types){
+      print('${type['productId']} - ${type['distributorTypeId']}');
       distTypes.add(ProductDataDistributorTypeDataDetail(type['productId'], type['salesmanId'], type['distributorTypeId'], type['distributorTypeName']));
     }
+
+
+
 
     return distTypes;
   }
@@ -400,7 +410,386 @@ class AppUtils {
     if(userData!=null){
       currency = userData.settings!.currency!;
     }
+    if(currency == 'INR'){
+      currency = '\u20B9';
+    }
     return currency;
+  }
+
+  static Future<ProductDataDetail?> getProductFromId(int? productId, int selectedUser, DatabaseHelper instance) async{
+    ProductDataDetail? prd;
+    var product = await instance.execQuery('SELECT * FROM ${instance.productDataDetail} WHERE ${ProductDataFields.productId} = $productId AND ${ProductDataFields.salesmanId} = $selectedUser');
+    if(product.isNotEmpty){
+      prd = ProductDataDetail(
+          product[0]['productName'],
+          product[0]['productId'],
+          product[0]['barcodeNumber'],
+          product[0]['hsnNumber'],
+          product[0]['description'],
+          product[0]['manufacturer'],
+          product[0]['productCategory'],
+          product[0]['scope'],
+          product[0]['mrp'],
+          product[0]['nrv'],
+          product[0]['ptr'],
+          product[0]['taxType'],
+          product[0]['isQps']==1,
+          product[0]['discountValue'],
+          product[0]['productStatus']==1,
+          product[0]['quantityLimit'],
+          product[0]['taxValue'],
+          product[0]['pts'],
+          product[0]['netPrice'],
+          product[0]['isFeatureProduct']==1,
+          product[0]['packs'],
+          product[0]['pricingId'],
+          product[0]['pricingNodeId'],
+          product[0] ['queryNodeId'],
+          product[0]['channel'],
+          product[0]['count'],
+          product[0]['packCount'],
+          product[0]['image'],
+          product[0]['salesmanId'],
+          product[0]['brand'],
+          product[0]['schemeId'],
+          product[0]['schemeCount']
+      );
+    }
+    return prd ;
+  }
+
+  static List<ProductDataDistributorTypeDataDetail> getCommonTypes(List<ProductDataDistributorTypeDataDetail> list1,List<ProductDataDistributorTypeDataDetail> list2){
+    List<ProductDataDistributorTypeDataDetail> list = [];
+    for(var i1 in list1){
+      for(var i2 in list2){
+        if(i1.distributorTypeId==i2.distributorTypeId){
+          list.add(i1);
+          break;
+        }
+      }
+    }
+    return list;
+  }
+
+  static getProductWithCountAndPrices(SchemesDataDetail detail,List<ProductDataDetail> items) async {
+    var prd = items
+        .where((element) => element.productId == detail.productId)
+        .first;
+
+    if (prd != null) {
+      List<dynamic> parsedListJson = jsonDecode(prd.packs!);
+      List<Pack> productPacks = List<Pack>.from(
+          parsedListJson.map<Pack>((dynamic i) => Pack.fromJson(i)));
+      productPacks[0].isSelected = true;
+      prd.packs = jsonEncode(productPacks);
+      prd.packCount = detail.minQty;
+      prd.count = detail.minQty;
+    }
+
+    ProductDataDetail prod = ProductDataDetail(
+        prd.productName,
+        prd.productId, prd.barcodeNumber,
+        prd.hsnNumber,
+        prd.description,
+        prd.manufacturer,
+        prd.productCategory,
+        prd.scope,
+        prd.mrp,
+        prd.nrv,
+        prd.ptr,
+        prd.taxType,
+        detail.isQps,
+        prd.discountValue,
+        prd.productStatus,
+        prd.quantityLimit,
+        prd.taxValue,
+        prd.pts,
+        prd.netPrice,
+        prd.isFeatureProduct,
+        prd.packs,
+        prd.pricingId,
+        prd.pricingNodeId,
+        prd.queryNodeId,
+        prd.channel,
+        prd.count,
+        prd.packCount,
+        prd.image,
+        prd.salesmanId,
+        prd.brand,
+        prd.schemeId,
+        prd.schemeCount
+    );
+
+    return prod;
+  }
+
+  static getTotalAmount(ProductDataDetail prd) {
+    var count = prd.count!;
+    var price = double.parse(prd.ptr!);
+    return (count*price).toStringAsFixed(2);
+  }
+
+  static Future<bool> checkAllItemsHaveDistTypes(List<ProductDataDetail> items,int selectedUser,DatabaseHelper instance) async{
+    bool allItemHaveDistType = true;
+    for(var item in items){
+      var distTypes = await AppUtils.getDistributorTypes(item.productId!,selectedUser,instance);
+      if(distTypes.isEmpty){
+        allItemHaveDistType = false;
+        break;
+      }
+    }
+    return allItemHaveDistType;
+  }
+
+  static Future<bool> hasCommonDistType(List<ProductDataDetail> items,int selectedUser,DatabaseHelper instance) async{
+    List<ProductDataDistributorTypeDataDetail>  list = [];
+    var distType = await AppUtils.getDistributorTypes(items[0].productId!,selectedUser,instance);
+    for(var item in items){
+      var productDistType = await AppUtils.getDistributorTypes(item.productId!,selectedUser,instance);
+      var commonTypes = AppUtils.getCommonTypes(distType,productDistType);
+      for(var type in commonTypes){
+        bool exists = false;
+        for(var item in list){
+          if(item.distributorTypeId==type.distributorTypeId){
+            exists = true;
+            break;
+          }
+        }
+        if(!exists){
+          list.add(type);
+        }
+      }
+    }
+    return list.isNotEmpty;
+  }
+
+  static int getFreeFactor(List<ProductDataDetail> item,List<SchemesDataDetail> schemes) {
+    List<int> freeList = [];
+    for(var item in item)  {
+      for(var scheme in schemes){
+        if(item.productId==scheme.productId){
+          freeList.add(
+              item.count!~/scheme.minQty!
+          );
+          break;
+        }
+      }
+    }
+    return freeList.reduce(min);
+  }
+
+  static List<int> getMax(Map<int,int> mapTypeCount) {
+    int maxValueInMap = 0;
+
+    for(var key in mapTypeCount.keys){
+      if(maxValueInMap<mapTypeCount[key]!){
+        maxValueInMap = mapTypeCount[key]!;
+      }
+    }
+
+    List<int> ids = [];
+
+    for(var key in mapTypeCount.keys){
+      if(mapTypeCount[key] == maxValueInMap){
+        ids.add(key);
+      }
+    }
+
+    return ids;
+
+  }
+
+
+  static Future<DistributorDataDetail?> getDistributor(int id,DatabaseHelper instance) async{
+    var dist = await instance.execQuery('SELECT * FROM ${instance.distributorDataDetail} WHERE ${DistributorDataDetailFields.distributorId} = $id');
+    if(dist!=null && dist.isNotEmpty){
+
+      DistributorDataDetail distributor = DistributorDataDetail(
+          dist[0]['distributorId'],
+          dist[0]['name'],
+          dist[0]['code'],
+          dist[0]['contactNumber'],
+          dist[0]['type'],
+          dist[0]['distributorStatus']==1,
+          dist[0]['emailId'],
+          dist[0]['salesmanId'],
+          dist[0]['territories'],
+          dist[0]['types']
+      );
+
+      return distributor;
+    }
+
+    return null;
+  }
+
+  static Future<UserHierarchyDataDetail?> getUserFromHierarchyById(DatabaseHelper instance,int userId) async {
+
+    UserHierarchyDataDetail? user;
+
+    var userHierarchyRaw = await instance.execQuery('SELECT * FROM ${instance.tableUserHierarchyDataDetail} WHERE ${UserHierarchyDataDetailFields.serverId} = $userId');
+
+    if(userHierarchyRaw.isNotEmpty){
+
+      user = UserHierarchyDataDetail(
+          userHierarchyRaw[0]['serverId'],
+          userHierarchyRaw[0]['employName'],
+          userHierarchyRaw[0]['employId'],
+          userHierarchyRaw[0]['locations'],
+          userHierarchyRaw[0]['salesmanDistributors'],
+          userHierarchyRaw[0]['beats'],
+          userHierarchyRaw[0]['lastLogin'],
+          userHierarchyRaw[0]['tenantId'],
+          userHierarchyRaw[0]['userId'],
+          userHierarchyRaw[0]['name'],
+          userHierarchyRaw[0]['mobileNumber'],
+          userHierarchyRaw[0]['email'],
+          userHierarchyRaw[0]['isExternal']==1,
+          userHierarchyRaw[0]['isActive']==1,
+          userHierarchyRaw[0]['dateJoined'],
+          userHierarchyRaw[0]['fcmToken'],
+          userHierarchyRaw[0]['createdAt'],
+          userHierarchyRaw[0]['updatedAt'],
+          userHierarchyRaw[0]['isSalesman']==1,
+          userHierarchyRaw[0]['isGeoRestricted']==1,
+          userHierarchyRaw[0]['place'],
+          userHierarchyRaw[0]['role'],
+          userHierarchyRaw[0]['manager'],
+          userHierarchyRaw[0]['createdBy'],
+          userHierarchyRaw[0]['updatedBy']
+      );
+    }
+
+    return user;
+
+  }
+
+  static Widget getDiscountView(List<SchemesDataDetail> list,SharedPreferences prefs) {
+    List<SchemesDataDetail> paid = list.where((element) => !element.isQps!).toList();
+    return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 5,),
+            const Text(AppStrings.buy,style: TextStyle(color: Colors.grey,fontSize: 12),),
+            const SizedBox(height: 10,),
+            Column(children: AppUtils.getItemRows(paid),),
+            const SizedBox(height: 20,),
+            Wrap(
+              children: [
+                Text(AppStrings.getDiscountOf,style: TextStyle(color: Colors.grey,fontSize: 12),),
+                SizedBox(width: 5,),
+                getDiscountAmountView(paid[0],prefs)
+              ],
+            )
+          ],
+        )
+    );
+  }
+
+  static Widget getDiscountAmountView(SchemesDataDetail disc,SharedPreferences prefs) {
+    Widget view = Container();
+    if(disc.discountUom=='INR') {
+      view = Text('${AppUtils.getCurrency(prefs)} ${disc.discountValue}',style: TextStyle(color: Colors.black,fontSize: 12,fontWeight: FontWeight.w600),);
+    }
+    if(disc.discountUom=='%') {
+      view = Text('${disc.discountValue} ${disc.discountUom}',style: TextStyle(color: Colors.black,fontSize: 12,fontWeight: FontWeight.w600),);
+    }
+    return view;
+  }
+
+
+  static  Widget getQpsView(List<SchemesDataDetail> list) {
+    List<SchemesDataDetail> free = list.where((element) => element.isQps!).toList();
+    List<SchemesDataDetail> paid = list.where((element) => !element.isQps!).toList();
+    return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: 5,),
+            Text(AppStrings.buy,style: TextStyle(color: Colors.grey,fontSize: 12),),
+            SizedBox(height: 10,),
+            Column(children: getItemRows(paid),),
+            SizedBox(height: 10,),
+            Text(AppStrings.get,style: TextStyle(color: Colors.grey,fontSize: 12),),
+            SizedBox(height: 10,),
+            Column(children: getItemRows(free),),
+            SizedBox(height: 10,),
+          ],
+        )
+    );
+  }
+
+  static getItemRows(List<SchemesDataDetail> paid) {
+    List<Widget> widgets = [];
+    for (SchemesDataDetail scheme in paid){
+      widgets.add(Row(
+        children: [
+          Expanded(
+              child: Text('${scheme.minQty} ${AppStrings.itemsOf}',style: TextStyle(fontSize: 12,fontWeight: FontWeight.w600,color: Colors.black),)
+          ),
+          Text(scheme.productName!,style: TextStyle(fontSize: 12,fontWeight: FontWeight.w600,color: Colors.black))
+        ],
+      )) ;
+    }
+    return widgets;
+  }
+
+  static Widget getVisibilityView(List<SchemesDataDetail> list,SharedPreferences pref) {
+    List<SchemesDataDetail> paid = list.where((element) => !element.isQps!).toList();
+    return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 5,),
+            const Text(AppStrings.buy,style: TextStyle(color: Colors.grey,fontSize: 12),),
+            const SizedBox(height: 10,),
+            Column(children: getVisibilityItemRows(paid,pref),),
+            const SizedBox(height: 20,),
+            Row(
+              children: [
+                Expanded(child: Text('${AppStrings.worth}:',style: TextStyle(fontSize: 12,color: Colors.grey),)),
+                Text('${paid[0].minPurchaseValue}',style: TextStyle(fontSize: 12,color: Colors.black,fontWeight: FontWeight.w600),),
+              ],
+            ),
+            const SizedBox(height: 10,),
+            Row(
+              children: [
+                Text('${AppStrings.andMaintainDisplayOf} ',style: TextStyle(fontSize: 12,color: Colors.grey),),
+                Text('${paid[0].tenure} ${AppStrings.days} ',style: TextStyle(fontSize: 12,color: Colors.black,fontWeight: FontWeight.w600),),
+                Text('${AppStrings.toGet} ',style: TextStyle(fontSize: 12,color: Colors.grey),),
+              ],
+            ),
+            const SizedBox(height: 10,),
+            Row(
+              children: [
+                const Expanded(child: Text('${AppStrings.offerValue}:',style: TextStyle(fontSize: 12,color: Colors.grey),)),
+                Text('${AppUtils.getCurrency(pref)} ${paid[0].discountValue}',style: TextStyle(fontSize: 12,color: Colors.black,fontWeight: FontWeight.w600),),
+              ],
+            ),
+          ],
+        )
+    );
+  }
+
+  static List<Widget> getVisibilityItemRows(List<SchemesDataDetail> paid,SharedPreferences pref) {
+    List<Widget> widgets = [];
+    for (SchemesDataDetail scheme in paid){
+      widgets.add(Row(
+        children: [
+          Expanded(
+              child: Text(scheme.productName!,style: TextStyle(fontSize: 12,fontWeight: FontWeight.w600,color: Colors.black))
+          ),
+        ],
+      )) ;
+    }
+    return widgets;
   }
 
 }
