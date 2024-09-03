@@ -1,22 +1,59 @@
+import 'package:hive/hive.dart';
 import 'package:vajra_test/features/sync/model/models/userhierarchy/user_hierarchy_distributor_types.dart';
 
+part 'user_hierarchy_salesman_distributors.g.dart';
+
+@HiveType(typeId: 4, adapterName: 'UserHierarchySalesmanDistributorsAdapter')
 class UserHierarchySalesmanDistributors {
+  @HiveField(0)
   int? id;
+
+  @HiveField(1)
   List<UserHierarchyDistributorTypes>? distributorTypes;
+
+  @HiveField(2)
   String? tenantId;
+
+  @HiveField(3)
   String? name;
+
+  @HiveField(4)
   String? description;
+
+  @HiveField(5)
   String? code;
+
+  @HiveField(6)
   String? contactNumber;
+
+  @HiveField(7)
   String? type;
+
+  @HiveField(8)
   String? emailId;
+
+  @HiveField(9)
   bool? distributorStatus;
+
+  @HiveField(10)
   String? createdAt;
+
+  @HiveField(11)
   String? updatedAt;
+
+  @HiveField(12)
   int? territory;
+
+  @HiveField(13)
   int? createdBy;
+
+  @HiveField(14)
   int? updatedBy;
+
+  @HiveField(15)
   List<Object>? divisions;
+
+  @HiveField(16)
   List<int>? territories;
 
   UserHierarchySalesmanDistributors(

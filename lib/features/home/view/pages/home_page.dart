@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:vajra_test/cores/constants/app_dimens.dart';
 import 'package:vajra_test/cores/constants/app_strings.dart';
+import 'package:vajra_test/cores/features/location/bloc/location_bloc.dart';
 import 'package:vajra_test/cores/themes/app_palette.dart';
 import 'package:vajra_test/cores/themes/app_theme.dart';
 import 'package:vajra_test/cores/widgets/loader.dart';
@@ -12,6 +13,7 @@ import 'package:vajra_test/features/home/view/widgets/home_cards.dart';
 import 'package:vajra_test/features/home/view/widgets/last_sync_card.dart';
 import 'package:vajra_test/features/home/view/widgets/places_dropdown.dart';
 import 'package:vajra_test/features/home/viewmodel/bloc/home_bloc.dart';
+import 'package:vajra_test/features/store/view/pages/store_page.dart';
 import 'package:vajra_test/features/sync/view/widgets/sync_viewer.dart';
 
 class HomePage extends StatefulWidget {
@@ -27,10 +29,13 @@ class _HomePageState extends State<HomePage> {
   String name = '', empId = '';
   List<Locations> places = [];
   Locations? selectedLocation;
+  String lastSyncTime = AppStrings.noSyncDone;
 
   @override
   void initState() {
     context.read<HomeBloc>().add(HomeInitialEvent());
+    context.read<LocationBloc>().add(FetchLocationServiceEvent());
+    context.read<LocationBloc>().add(FetchLocationEvent());
     super.initState();
   }
 
@@ -43,6 +48,11 @@ class _HomePageState extends State<HomePage> {
           empId = state.empId;
           places = state.loactions;
           selectedLocation = state.loactions[0];
+          lastSyncTime = state.lastSyncTime;
+          setState(() {});
+        }
+        if (state is HomeSyncTimeUpdated) {
+          lastSyncTime = state.lastSyncTime;
           setState(() {});
         }
       },
@@ -77,11 +87,7 @@ class _HomePageState extends State<HomePage> {
                             )
                           : Container(),
                       actions: const [
-                        SyncViewer(
-                          syncPendingCount: 0,
-                          isSyncing: false,
-                          percent: 0,
-                        ),
+                        SyncViewer(),
                         SizedBox(
                           width: 10,
                         ),
@@ -217,9 +223,9 @@ class _HomePageState extends State<HomePage> {
                           const SizedBox(
                             height: 20,
                           ),
-                          const LastSyncCard(
+                          LastSyncCard(
                             status: AppStrings.online,
-                            time: AppStrings.noSyncDone,
+                            time: lastSyncTime,
                           ),
                           const SizedBox(
                             height: 20,
@@ -236,7 +242,10 @@ class _HomePageState extends State<HomePage> {
                                 backgroundColor:
                                     AppPalette.homeStartButtonColor,
                               ),
-                              onPressed: () {},
+                              onPressed: () => Navigator.push(
+                                context,
+                                StorePage.route(),
+                              ),
                               child: Text(
                                 AppStrings.start.toUpperCase(),
                                 style: AppTheme.textTheme(

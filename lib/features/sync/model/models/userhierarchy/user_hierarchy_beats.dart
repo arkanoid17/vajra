@@ -1,16 +1,41 @@
+import 'package:hive/hive.dart';
 import 'package:vajra_test/features/sync/model/models/userhierarchy/user_hierarchy_beats_calendar.dart';
 
+part 'user_hierarchy_beats.g.dart';
+
+@HiveType(typeId: 7, adapterName: 'UserHierarchyBeatsAdapter')
 class UserHierarchyBeats {
+  @HiveField(0)
   int? id;
+
+  @HiveField(1)
   List<UserHierarchyBeatCalendar>? calendar;
+
+  @HiveField(2)
   String? tenantId;
+
+  @HiveField(3)
   String? name;
+
+  @HiveField(4)
   bool? status;
+
+  @HiveField(5)
   String? companyCode;
+
+  @HiveField(6)
   String? description;
+
+  @HiveField(7)
   String? type;
+
+  @HiveField(8)
   String? createdAt;
+
+  @HiveField(9)
   String? updatedAt;
+
+  @HiveField(10)
   int? createdBy;
 
   UserHierarchyBeats(

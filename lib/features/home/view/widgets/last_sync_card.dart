@@ -59,6 +59,7 @@ class LastSyncCard extends StatelessWidget {
                   height: 10,
                 ),
                 RichText(
+                  maxLines: 2,
                   text: TextSpan(
                     text: '${AppStrings.lastSyncTime}:  ',
                     style: AppTheme.textTheme(

@@ -9,4 +9,7 @@ class ServerConstants {
   static const String loginUrl = 'employee/mobile/login/';
   static const String userDataUrl = 'salesman/get_user_data/';
   static const String userHierachyUrl = 'salesman/user-hierarchy/';
+  static const String productsUrl = 'get_products/';
+  static const String schemesUrl = 'salesman/common-schemes/';
+  static const String storesUrl = 'salesman/territory_stores/';
 }

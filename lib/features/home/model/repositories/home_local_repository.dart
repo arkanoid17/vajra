@@ -18,4 +18,8 @@ class HomeLocalRepository {
   List<Locations> getPlaces() {
     return locationBox.values.toList();
   }
+
+  String getLastSyncTime() {
+    return box.get('last_sync_time') ?? '';
+  }
 }

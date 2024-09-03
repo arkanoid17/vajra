@@ -10,8 +10,10 @@ class AppTheme {
       border: _border(AppPalette.borderColor),
     ),
     appBarTheme: const AppBarTheme(
-        backgroundColor: AppPalette.primaryColor,
-        iconTheme: IconThemeData(color: AppPalette.whiteColor)),
+      titleTextStyle: TextStyle(color: AppPalette.whiteColor, fontSize: 20.0),
+      backgroundColor: AppPalette.primaryColor,
+      iconTheme: IconThemeData(color: AppPalette.whiteColor),
+    ),
     drawerTheme: DrawerThemeData(),
   );
 
@@ -24,6 +26,15 @@ class AppTheme {
           AppDimens.inputBorderRadius,
         ),
       );
+
+  static const buttonText = TextStyle(
+      color: AppPalette.whiteColor, fontWeight: FontWeight.w400, fontSize: 16);
+
+  static const indicatorText = TextStyle(
+      color: AppPalette.blackColor, fontWeight: FontWeight.w300, fontSize: 11);
+
+  static const valueTextText = TextStyle(
+      color: AppPalette.blackColor, fontWeight: FontWeight.w500, fontSize: 14);
 
   static const titleText = TextStyle(
       color: AppPalette.blackColor, fontWeight: FontWeight.w500, fontSize: 18);
@@ -46,4 +57,8 @@ class AppTheme {
       4,
     ),
   );
+
+  static final cardBoxDecoration = BoxDecoration(
+      border: Border.all(color: AppPalette.borderColorDark, width: 1),
+      borderRadius: BorderRadius.circular(8.0));
 }

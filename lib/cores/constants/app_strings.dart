@@ -1,4 +1,5 @@
 class AppStrings {
+  static const String vajra = 'Vajra';
   static const String welcomeBack = 'Welcome Back!';
   static const String pleaseLoginToContinue = 'Please login to contiinue.';
   static const String company = 'Company';
@@ -31,7 +32,38 @@ class AppStrings {
   static const String performance = 'Performance';
   static const String online = 'Online';
   static const String offline = 'Offline';
-  static const String lastSyncTime = 'Last sync time';
+  static const String lastSyncTime = 'Sync time';
   static const String noSyncDone = 'No sync done!';
   static const String start = 'Start';
+  static const String dataRetrievedSuccessfully =
+      'Data retrieved successfully!';
+
+  static const String failedToSync = 'Failed to sync!';
+
+  static const String pleaseGiveLocationAcessToUseApp =
+      'Please give location acess to use app!';
+
+  static const String settings = 'Settings';
+  static const String pleaseEnableLocation = 'Please enable location!';
+  static const String storeName = 'Store Name';
+  static const String distance = 'Distance';
+  static const String notVisited = 'Not Visited';
+  static const String visited = 'Visited';
+  static const String showingResults = 'Showing results';
+  static const String noOrder = 'No Order';
+  static const String bookOrder = 'Book Order';
+  static const List<String> days = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday'
+  ];
+
+  static const String filter = 'Filter';
+  static const String reset = 'Reset';
+  static const String apply = 'Apply';
+  static const String date = 'Date';
 }

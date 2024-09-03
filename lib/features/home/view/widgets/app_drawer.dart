@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:vajra_test/cores/constants/app_dimens.dart';
 import 'package:vajra_test/cores/constants/app_strings.dart';
 import 'package:vajra_test/cores/themes/app_palette.dart';
 import 'package:vajra_test/cores/themes/app_theme.dart';
 import 'package:vajra_test/cores/utils/app_utils.dart';
+import 'package:vajra_test/features/sync/viewmodel/bloc/sync_bloc.dart';
 
 class AppDrawer extends StatefulWidget {
   final String name;
@@ -160,6 +162,14 @@ class _AppDrawerState extends State<AppDrawer> {
                   ),
                 ),
                 ListTile(
+                  onTap: () {
+                    context.read<SyncBloc>().add(
+                          SyncStartEvent(
+                            isForced: true,
+                          ),
+                        );
+                    Navigator.pop(context);
+                  },
                   horizontalTitleGap: AppDimens.screenPadding,
                   visualDensity: VisualDensity.compact,
                   leading: SvgPicture.asset(

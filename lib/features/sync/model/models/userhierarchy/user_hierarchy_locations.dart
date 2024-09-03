@@ -1,13 +1,37 @@
+import 'package:hive/hive.dart';
+
+part 'user_hierarchy_locations.g.dart';
+
+@HiveType(typeId: 5, adapterName: 'UserHierarchyLocationsAdapter')
 class UserHierarchyLocations {
+  @HiveField(0)
   int? id;
+
+  @HiveField(1)
   String? tenantId;
+
+  @HiveField(2)
   String? name;
+
+  @HiveField(3)
   String? companyCode;
+
+  @HiveField(4)
   String? createdAt;
+
+  @HiveField(5)
   String? updatedAt;
+
+  @HiveField(6)
   bool? isTerritory;
+
+  @HiveField(7)
   bool? status;
+
+  @HiveField(8)
   int? type;
+
+  @HiveField(9)
   int? parent;
 
   UserHierarchyLocations(

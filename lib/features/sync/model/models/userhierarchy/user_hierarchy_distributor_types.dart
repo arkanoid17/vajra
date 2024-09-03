@@ -1,13 +1,37 @@
+import 'package:hive/hive.dart';
+
+part 'user_hierarchy_distributor_types.g.dart';
+
+@HiveType(typeId: 6, adapterName: 'UserHierarchyDistributorTypesAdapter')
 class UserHierarchyDistributorTypes {
+  @HiveField(0)
   int? id;
+
+  @HiveField(1)
   String? tenantId;
+
+  @HiveField(2)
   String? name;
+
+  @HiveField(3)
   String? description;
+
+  @HiveField(4)
   bool? status;
+
+  @HiveField(5)
   int? code;
+
+  @HiveField(6)
   String? createdAt;
+
+  @HiveField(7)
   String? updatedAt;
+
+  @HiveField(8)
   int? createdBy;
+
+  @HiveField(9)
   int? updatedBy;
 
   UserHierarchyDistributorTypes(

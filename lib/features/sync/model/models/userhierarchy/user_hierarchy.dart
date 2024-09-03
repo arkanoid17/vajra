@@ -1,33 +1,88 @@
+import 'package:hive/hive.dart';
 import 'package:vajra_test/features/sync/model/models/userhierarchy/user_hierarchy_beats.dart';
 import 'package:vajra_test/features/sync/model/models/userhierarchy/user_hierarchy_locations.dart';
 import 'package:vajra_test/features/sync/model/models/userhierarchy/user_hierarchy_salesman_distributors.dart';
 
+part 'user_hierarchy.g.dart';
+
+@HiveType(typeId: 3, adapterName: 'UserHierarchyAdapter')
 class UserHierarchy {
+  @HiveField(0)
   int? id;
+
+  @HiveField(1)
   String? employName;
+
+  @HiveField(2)
   String? employId;
+
+  @HiveField(3)
   List<UserHierarchyLocations>? locations;
+
+  @HiveField(4)
   List<UserHierarchySalesmanDistributors>? salesmanDistributors;
+
+  @HiveField(5)
   List<UserHierarchyBeats>? beats;
+
+  @HiveField(6)
   String? lastLogin;
+
+  @HiveField(7)
   String? tenantId;
+
+  @HiveField(8)
   String? userId;
+
+  @HiveField(9)
   String? name;
+
+  @HiveField(10)
   String? mobileNumber;
+
+  @HiveField(11)
   String? email;
+
+  @HiveField(12)
   bool? isExternal;
+
+  @HiveField(13)
   bool? isActive;
+
+  @HiveField(14)
   String? dateJoined;
+
+  @HiveField(15)
   String? fcmToken;
+
+  @HiveField(16)
   String? createdAt;
+
+  @HiveField(17)
   String? updatedAt;
+
+  @HiveField(18)
   bool? isSalesman;
+
+  @HiveField(19)
   bool? isGeoRestricted;
+
+  @HiveField(20)
   int? place;
+
+  @HiveField(21)
   int? role;
+
+  @HiveField(22)
   int? manager;
+
+  @HiveField(23)
   int? createdBy;
+
+  @HiveField(24)
   int? updatedBy;
+
+  @HiveField(25)
   List<Object>? divisions;
 
   UserHierarchy(

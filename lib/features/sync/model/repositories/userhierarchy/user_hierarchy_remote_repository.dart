@@ -1,10 +1,12 @@
 import 'dart:convert';
 
 import 'package:fpdart/fpdart.dart';
+import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:vajra_test/cores/constants/server_constants.dart';
 import 'package:vajra_test/cores/utils/app_utils.dart';
 import 'package:vajra_test/features/sync/model/models/userhierarchy/user_hierarchy.dart';
+import 'package:vajra_test/init_dependencies.dart';
 
 class UserHierarchyRemoteRepository {
   Future<Either<String, List<UserHierarchy>>> getUserHierarchy(

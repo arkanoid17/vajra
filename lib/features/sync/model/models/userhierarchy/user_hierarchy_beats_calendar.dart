@@ -1,6 +1,16 @@
+import 'package:hive/hive.dart';
+
+part 'user_hierarchy_beats_calendar.g.dart';
+
+@HiveType(typeId: 8, adapterName: 'UserHierarchyBeatCalendarAdapter')
 class UserHierarchyBeatCalendar {
+  @HiveField(0)
   int? id;
+
+  @HiveField(1)
   int? weekNo;
+
+  @HiveField(2)
   String? dayName;
 
   UserHierarchyBeatCalendar({this.id, this.weekNo, this.dayName});

@@ -4,11 +4,26 @@ import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:hive/hive.dart';
+import 'package:intl/intl.dart';
 import 'package:vajra_test/cores/model/country_codes.dart';
 import 'package:vajra_test/cores/model/user/locations.dart';
+import 'package:vajra_test/cores/model/user/user_data.dart';
+import 'package:vajra_test/cores/themes/app_palette.dart';
+import 'package:vajra_test/cores/themes/app_theme.dart';
+import 'package:vajra_test/cores/utils/date_utils.dart' as dateUtils;
 import 'package:vajra_test/features/auth/view/pages/login.dart';
+import 'package:vajra_test/features/home/model/repositories/home_local_repository.dart';
+import 'package:vajra_test/features/sync/model/models/userhierarchy/user_hierarchy_beats.dart';
+import 'package:vajra_test/features/sync/model/models/userhierarchy/user_hierarchy_beats_calendar.dart';
+import 'package:vajra_test/features/sync/model/repositories/userhierarchy/user_hierarchy_local_repository.dart';
 import 'package:vajra_test/init_dependencies.dart';
+
+class AppUtils {
+  static bool isSyncing = false;
+  static int syncInterval = 2;
+}
 
 Future<List<CountryCode>> loadCountries() async {
   String data = await rootBundle.loadString('assets/json/country.json');
@@ -22,6 +37,25 @@ Future<List<CountryCode>> loadCountries() async {
 
 void showBottomDialog(BuildContext context, Widget widget) {
   showModalBottomSheet(context: context, builder: (ctx) => widget);
+}
+
+void showAlertDialog(BuildContext context, String title, String content,
+    bool isCancelable, List<Widget> actions) {
+  showDialog(
+    barrierDismissible: isCancelable,
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(
+        title,
+        style: AppTheme.textTheme(AppPalette.blackColor, 22.0, FontWeight.w500),
+      ),
+      content: Text(
+        content,
+        style: AppTheme.textTheme(AppPalette.blackColor, 18.0, FontWeight.w400),
+      ),
+      actions: actions,
+    ),
+  );
 }
 
 Future<String?> getDeviceId() async {
@@ -80,3 +114,86 @@ Map<String, String> headers = {
   'tenant-id': serviceLocator<Box>().get('tenant-id'),
   'Authorization': 'Token ${serviceLocator<Box>().get('token')}',
 };
+
+int getSalesmanId() {
+  Box box = serviceLocator();
+  String data = box.get('user');
+
+  print(data);
+
+  UserData user = UserData.fromJson(jsonDecode(data));
+  return user.id ?? 0;
+}
+
+bool isSalesman() {
+  Box box = serviceLocator();
+  String data = box.get('user');
+  UserData user = UserData.fromJson(jsonDecode(data));
+  return user.isSalesman ?? false;
+}
+
+void saveLastSyncTime() {
+  final now = DateTime.now();
+  String lastSyncTime = DateFormat('dd/MM/yyyy hh:mm:ss a').format(now);
+  Box box = serviceLocator();
+  box.put('last_sync_time', lastSyncTime);
+}
+
+bool isSyncTime() {
+  try {
+    final String syncTime = HomeLocalRepository().getLastSyncTime();
+
+    if (syncTime.isEmpty) {
+      return true;
+    }
+
+    final lastSyncTime = DateFormat("dd/MM/yyyy hh:mm:ss a").parse(syncTime);
+
+    final difference = dateUtils.DateUtils.getDifferenceInHours(
+      lastSyncTime,
+      DateTime.now(),
+    );
+
+    return difference >= AppUtils.syncInterval;
+  } catch (e) {
+    return false;
+  }
+}
+
+List<UserHierarchyBeats> filterBeatsByDateAndUser(String date, int salesmanId) {
+  List<UserHierarchyBeats> selectedBeats = [];
+
+  List<UserHierarchyBeats> userBeats =
+      UserHierarchyLocalRepository().getUserBeats(salesmanId);
+  int weekOfMonth = dateUtils.DateUtils.getWeekOfMonth(date);
+  String dayOfWeek = dateUtils.DateUtils.getDayOfWeek(date);
+
+  for (UserHierarchyBeats beat in userBeats) {
+    for (UserHierarchyBeatCalendar calendar in beat.calendar ?? []) {
+      if (calendar.dayName!.toLowerCase() == dayOfWeek.toLowerCase() &&
+          calendar.weekNo == weekOfMonth) {
+        selectedBeats.add(beat);
+      }
+    }
+  }
+
+  return selectedBeats;
+}
+
+double getDistance(
+  double startLatitude,
+  double startLongitude,
+  double endLatitude,
+  double endLongitude,
+) {
+  final distance = Geolocator.distanceBetween(
+    startLatitude,
+    startLongitude,
+    endLatitude,
+    endLongitude,
+  );
+
+  print(distance);
+
+  return distance;
+}
