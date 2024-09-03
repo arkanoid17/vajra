@@ -76,8 +76,8 @@ class _StorePageState extends State<StorePage> {
               ),
             ),
             IconButton(
-              onPressed: () =>
-                  Navigator.push(context, StoreFilters.route(selectedDate)),
+              onPressed: () => Navigator.push(context,
+                  StoreFilters.route(selectedDate, selectedBeats, salesmanId)),
               icon: const Icon(
                 Icons.filter_alt_outlined,
               ),

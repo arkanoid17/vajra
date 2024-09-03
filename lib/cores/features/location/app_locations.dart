@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
@@ -17,7 +19,11 @@ class AppLocations {
   );
 
   static Future<bool> checkLocationPermission() async {
-    var status = await permissionHandler.Permission.location.request();
+    var status = await (Platform.isAndroid
+        ? permissionHandler.Permission.location.request()
+        : permissionHandler.Permission.locationWhenInUse.request());
+
+    print(await (status.isGranted));
 
     return status.isGranted;
   }

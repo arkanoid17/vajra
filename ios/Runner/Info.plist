@@ -49,12 +49,13 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Please give location permission for fetching nearest stores!</string>
 
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>We need your location to show relevant data near you.</string>
+	
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>We need your location to show relevant data near you, even when the app is in the background.</string>
+
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>We need your location to show relevant data near you at all times.</string>
+	
 	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
 	<dict>
 		<key>YOUR_PURPOSE_KEY</key>

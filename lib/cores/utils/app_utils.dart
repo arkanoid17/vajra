@@ -35,8 +35,13 @@ Future<List<CountryCode>> loadCountries() async {
   return countryList;
 }
 
-void showBottomDialog(BuildContext context, Widget widget) {
-  showModalBottomSheet(context: context, builder: (ctx) => widget);
+void showBottomDialog(BuildContext context, Widget widget,
+    [bool isScrollControlled = true]) {
+  showModalBottomSheet(
+    context: context,
+    builder: (ctx) => widget,
+    isScrollControlled: isScrollControlled,
+  );
 }
 
 void showAlertDialog(BuildContext context, String title, String content,
@@ -160,25 +165,6 @@ bool isSyncTime() {
   }
 }
 
-List<UserHierarchyBeats> filterBeatsByDateAndUser(String date, int salesmanId) {
-  List<UserHierarchyBeats> selectedBeats = [];
-
-  List<UserHierarchyBeats> userBeats =
-      UserHierarchyLocalRepository().getUserBeats(salesmanId);
-  int weekOfMonth = dateUtils.DateUtils.getWeekOfMonth(date);
-  String dayOfWeek = dateUtils.DateUtils.getDayOfWeek(date);
-
-  for (UserHierarchyBeats beat in userBeats) {
-    for (UserHierarchyBeatCalendar calendar in beat.calendar ?? []) {
-      if (calendar.dayName!.toLowerCase() == dayOfWeek.toLowerCase() &&
-          calendar.weekNo == weekOfMonth) {
-        selectedBeats.add(beat);
-      }
-    }
-  }
-
-  return selectedBeats;
-}
 
 double getDistance(
   double startLatitude,

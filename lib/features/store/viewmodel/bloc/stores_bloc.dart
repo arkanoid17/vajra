@@ -8,6 +8,7 @@ import 'package:vajra_test/cores/utils/date_utils.dart' as dateUtils;
 import 'package:vajra_test/features/store/model/models/store.dart';
 import 'package:vajra_test/features/store/model/repository/stores_local_repository.dart';
 import 'package:vajra_test/features/sync/model/models/userhierarchy/user_hierarchy_beats.dart';
+import 'package:vajra_test/features/sync/model/repositories/userhierarchy/user_hierarchy_local_repository.dart';
 import 'package:vajra_test/main.dart';
 
 part 'stores_event.dart';
@@ -30,8 +31,8 @@ class StoresBloc extends Bloc<StoresEvent, StoresState> {
 
   FutureOr<void> _handleFetchBeats(
       FetchBeatsEvent event, Emitter<StoresState> emit) {
-    List<UserHierarchyBeats> beats =
-        filterBeatsByDateAndUser(event.date, event.id);
+    List<UserHierarchyBeats> beats = UserHierarchyLocalRepository()
+        .filterBeatsByDateAndUser(event.date, event.id);
     emit(BeatsFetchedState(beats: beats));
   }
 

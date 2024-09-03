@@ -66,4 +66,6 @@ class AppStrings {
   static const String reset = 'Reset';
   static const String apply = 'Apply';
   static const String date = 'Date';
+  static const String beats = 'Beats';
+  static const String selectBeats = 'Select Beats';
 }
