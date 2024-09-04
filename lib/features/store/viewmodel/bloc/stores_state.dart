@@ -25,3 +25,21 @@ class OnLocationChangedState extends StoresState {
 
   OnLocationChangedState({required this.location});
 }
+
+class StoresFilterChangedState extends StoresState {
+  final int salesmanId;
+  final String selectedDate;
+  final List<UserHierarchyBeats> selectedBeats;
+
+  StoresFilterChangedState({
+    required this.salesmanId,
+    required this.selectedDate,
+    required this.selectedBeats,
+  });
+}
+
+class UpdatedSalesmanStoresFetchSuccess extends StoresState {}
+
+class UpdatedSalesmanStoresFetchError extends StoresState {}
+
+class UpdatedSalesmanStoresFetchLoader extends StoreListState {}

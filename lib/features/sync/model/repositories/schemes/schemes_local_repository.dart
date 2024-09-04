@@ -5,7 +5,7 @@ import 'package:vajra_test/init_dependencies.dart';
 class SchemesLocalRepository {
   Box<Schemes> schemesBox = serviceLocator();
 
-  void addAllSchemes(List<Schemes> schemes, int salesmanId) async {
+  Future<bool> addAllSchemes(List<Schemes> schemes, int salesmanId) async {
     final val = await schemesBox.clear();
 
     Map<String, Schemes> map = Map();
@@ -14,7 +14,9 @@ class SchemesLocalRepository {
       map[i.toString()] = schemes[i];
     }
 
-    schemesBox.clear();
-    schemesBox.putAll(map);
+    await schemesBox.clear();
+    await schemesBox.putAll(map);
+
+    return true;
   }
 }

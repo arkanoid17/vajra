@@ -85,6 +85,8 @@ class UserHierarchy {
   @HiveField(25)
   List<Object>? divisions;
 
+  List<UserHierarchy>? hierarchy;
+
   UserHierarchy(
       {this.id,
       this.employName,
@@ -111,7 +113,8 @@ class UserHierarchy {
       this.manager,
       this.createdBy,
       this.updatedBy,
-      this.divisions});
+      this.divisions,
+      this.hierarchy});
 
   UserHierarchy.fromJson(Map<String, dynamic> json) {
     id = json['id'];
@@ -201,5 +204,65 @@ class UserHierarchy {
       data['divisions'] = this.divisions!.map((v) => v).toList();
     }
     return data;
+  }
+
+  UserHierarchy copyWith({
+    int? id,
+    String? employName,
+    String? employId,
+    List<UserHierarchyLocations>? locations,
+    List<UserHierarchySalesmanDistributors>? salesmanDistributors,
+    List<UserHierarchyBeats>? beats,
+    String? lastLogin,
+    String? tenantId,
+    String? userId,
+    String? name,
+    String? mobileNumber,
+    String? email,
+    bool? isExternal,
+    bool? isActive,
+    String? dateJoined,
+    String? fcmToken,
+    String? createdAt,
+    String? updatedAt,
+    bool? isSalesman,
+    bool? isGeoRestricted,
+    int? place,
+    int? role,
+    int? manager,
+    int? createdBy,
+    int? updatedBy,
+    List<Object>? divisions,
+    List<UserHierarchy>? hierarchy,
+  }) {
+    return UserHierarchy(
+      id: id ?? this.id,
+      employName: employName ?? this.employName,
+      employId: employId ?? this.employId,
+      locations: locations ?? this.locations,
+      salesmanDistributors: salesmanDistributors ?? this.salesmanDistributors,
+      beats: beats ?? this.beats,
+      lastLogin: lastLogin ?? this.lastLogin,
+      tenantId: tenantId ?? this.tenantId,
+      userId: userId ?? this.userId,
+      name: name ?? this.name,
+      mobileNumber: mobileNumber ?? this.mobileNumber,
+      email: email ?? this.email,
+      isExternal: isExternal ?? this.isExternal,
+      isActive: isActive ?? this.isActive,
+      dateJoined: dateJoined ?? this.dateJoined,
+      fcmToken: fcmToken ?? this.fcmToken,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isSalesman: isSalesman ?? this.isSalesman,
+      isGeoRestricted: isGeoRestricted ?? this.isGeoRestricted,
+      place: place ?? this.place,
+      role: role ?? this.role,
+      manager: manager ?? this.manager,
+      createdBy: createdBy ?? this.createdBy,
+      updatedBy: updatedBy ?? this.updatedBy,
+      divisions: divisions ?? this.divisions,
+      hierarchy: hierarchy ?? this.hierarchy,
+    );
   }
 }

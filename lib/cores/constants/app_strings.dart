@@ -68,4 +68,7 @@ class AppStrings {
   static const String date = 'Date';
   static const String beats = 'Beats';
   static const String selectBeats = 'Select Beats';
+  static const String user = 'User';
+  static const String selectUser = 'Select User';
+  static const String errorStores = 'Error while fetching stores';
 }

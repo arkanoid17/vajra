@@ -4,8 +4,6 @@ import 'package:vajra_test/cores/constants/app_strings.dart';
 import 'package:vajra_test/cores/themes/app_palette.dart';
 import 'package:vajra_test/cores/utils/app_utils.dart';
 import 'package:vajra_test/cores/widgets/loader.dart';
-import 'package:vajra_test/features/sync/model/repositories/schemes/schemes_remote_repository.dart';
-import 'package:vajra_test/features/store/model/repository/stores_remote_repository.dart';
 import 'package:vajra_test/features/sync/viewmodel/bloc/sync_bloc.dart';
 
 class SyncViewer extends StatefulWidget {
@@ -31,7 +29,6 @@ class _SyncViewerState extends State<SyncViewer> {
   Widget build(BuildContext context) {
     return BlocConsumer<SyncBloc, SyncState>(
       listener: (context, state) {
-        print(state);
         if (state is SyncSuccessState) {
           AppUtils.isSyncing = false;
           showSnackbar(context, AppStrings.dataRetrievedSuccessfully);

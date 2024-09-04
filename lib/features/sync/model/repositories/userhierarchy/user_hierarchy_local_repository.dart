@@ -20,6 +20,16 @@ class UserHierarchyLocalRepository {
     hierarchyBox.putAll(map);
   }
 
+  List<UserHierarchy> getAllUsers() {
+    List<UserHierarchy> users = [];
+
+    for (int i = 0; i < hierarchyBox.length; i++) {
+      users.add(hierarchyBox.get(i.toString())!);
+    }
+
+    return users;
+  }
+
   UserHierarchy getUser(int salesmanId) {
     UserHierarchy? user;
     Box<UserHierarchy> hierarchyBox = serviceLocator();

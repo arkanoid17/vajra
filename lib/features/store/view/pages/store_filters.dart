@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:vajra_test/cores/constants/app_dimens.dart';
 import 'package:vajra_test/cores/constants/app_strings.dart';
@@ -6,6 +7,8 @@ import 'package:vajra_test/cores/themes/app_palette.dart';
 import 'package:vajra_test/cores/themes/app_theme.dart';
 import 'package:vajra_test/cores/utils/app_utils.dart';
 import 'package:vajra_test/cores/widgets/custom_text_field.dart';
+import 'package:vajra_test/features/store/view/widgets/hierarchy_user_selector.dart';
+import 'package:vajra_test/features/store/viewmodel/bloc/stores_bloc.dart';
 import 'package:vajra_test/features/sync/model/models/userhierarchy/user_hierarchy_beats.dart';
 import 'package:vajra_test/features/store/view/widgets/beats_popup.dart';
 import 'package:vajra_test/features/sync/model/repositories/userhierarchy/user_hierarchy_local_repository.dart';
@@ -66,10 +69,14 @@ class _StoreFiltersState extends State<StoreFilters> {
         actions: [
           TextButton(
             onPressed: () {
-              salesmanId = getSalesmanId();
-              _setDate(DateFormat('yyyy-MM-dd').format(DateTime.now()));
-              _setBeats(userHierarchyLocalRepo.filterBeatsByDateAndUser(
-                  selectedDate, salesmanId));
+              _handleFiltersReset(
+                getSalesmanId(),
+                DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                userHierarchyLocalRepo.filterBeatsByDateAndUser(
+                  DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                  salesmanId,
+                ),
+              );
             },
             child: Text(
               AppStrings.reset,
@@ -87,6 +94,10 @@ class _StoreFiltersState extends State<StoreFilters> {
                 padding: const EdgeInsets.all(AppDimens.screenPadding),
                 child: Column(
                   children: [
+                    HierarchyUserSelector(
+                      selectedUser: salesmanId,
+                      onSalesmanChanged: onSalesmanChanged,
+                    ),
                     CustomTextField(
                       labelText: AppStrings.date,
                       textController: dateController,
@@ -120,7 +131,16 @@ class _StoreFiltersState extends State<StoreFilters> {
                   borderRadius: BorderRadius.circular(0),
                 ),
               ),
-              onPressed: () {},
+              onPressed: () {
+                context.read<StoresBloc>().add(
+                      StoreFiltersChangedEvent(
+                        salesmanId: salesmanId,
+                        selectedDate: selectedDate,
+                        selectedBeats: selectedBeats,
+                      ),
+                    );
+                Navigator.pop(context);
+              },
               child: Text(
                 AppStrings.apply.toUpperCase(),
                 style: AppTheme.buttonText,
@@ -170,6 +190,11 @@ class _StoreFiltersState extends State<StoreFilters> {
     );
   }
 
+  void onSalesmanChanged(int salesmanId) {
+    this.salesmanId = salesmanId;
+    _updatedBeatsList();
+  }
+
   void _updatedBeatsList() {
     if (selectedDate.isNotEmpty) {
       beats = userHierarchyLocalRepo.filterBeatsByDateAndUser(
@@ -180,5 +205,21 @@ class _StoreFiltersState extends State<StoreFilters> {
       beats = userHierarchyLocalRepo.getUserBeats(salesmanId);
     }
     _setBeats(beats);
+  }
+
+  void _handleFiltersReset(
+    int salesmanId,
+    String date,
+    List<UserHierarchyBeats> beats,
+  ) {
+    context.read<StoresBloc>().add(
+          StoreFiltersChangedEvent(
+            salesmanId: salesmanId,
+            selectedDate: date,
+            selectedBeats: beats,
+          ),
+        );
+
+    Navigator.pop(context);
   }
 }

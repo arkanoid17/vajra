@@ -93,9 +93,32 @@ class _StorePageState extends State<StorePage> {
             if (state is OnLocationChangedState) {
               _onLocationFetched(state);
             }
+            if (state is StoresFilterChangedState) {
+              salesmanId = state.salesmanId;
+              selectedDate = state.selectedDate;
+              selectedBeats = state.selectedBeats;
+              context.read<StoresBloc>().add(
+                    FetchUpdatedSalesmanStores(
+                      salesmanId: state.salesmanId,
+                    ),
+                  );
+            }
+
+            if (state is UpdatedSalesmanStoresFetchSuccess) {
+              context.read<StoresBloc>().add(
+                    FetchStoresEvent(
+                      selectedBeats: selectedBeats,
+                      salesmanId: salesmanId,
+                    ),
+                  );
+            }
+            if (state is UpdatedSalesmanStoresFetchError) {
+              showSnackbar(context, AppStrings.errorStores);
+            }
           },
           builder: (context, state) {
-            if (state is StoresLoadingState) {
+            if (state is StoresLoadingState ||
+                state is UpdatedSalesmanStoresFetchLoader) {
               return const Loader();
             }
 

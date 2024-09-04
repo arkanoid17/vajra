@@ -8,7 +8,7 @@ import 'package:vajra_test/init_dependencies.dart';
 class StoresLocalRepository {
   Box<Store> box = serviceLocator();
 
-  void adAllStores(int salesmanId, List<Store> stores) async {
+  Future<bool> adAllStores(int salesmanId, List<Store> stores) async {
     Map<String, Store> map = {};
 
     box.clear();
@@ -29,13 +29,13 @@ class StoresLocalRepository {
       map[i.toString()] = stores[i];
     }
 
-    box.putAll(map);
+    await box.putAll(map);
+
+    return true;
   }
 
   void updateStoreDistances(Position location, List<Store> stores) async {
     final val = await box.clear();
-
-    print('box length - ${box.length}');
 
     Map<String, Store> map = {};
 
@@ -74,8 +74,6 @@ class StoresLocalRepository {
     stores = allStores
         .where((store) => _filterStoreBeat(allBeatIds, store.beats!))
         .toList();
-
-    print('stores - ${stores.length}');
 
     return stores;
   }

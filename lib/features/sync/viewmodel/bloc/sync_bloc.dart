@@ -26,16 +26,19 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
   }
 
   FutureOr<void> _handleSync(
-      SyncStartEvent event, Emitter<SyncState> emit) async {
+    SyncStartEvent event,
+    Emitter<SyncState> emit,
+  ) async {
     if (event.isForced || isSyncTime()) {
       AppUtils.isSyncing = true;
 
       emit(SyncLoadingState());
 
-      bool userData = await handleUserData();
-      bool userHierarchy = await handleUserHierarchy();
+      final val = await Future.wait([handleUserData(), handleUserHierarchy()]);
 
-      if (userHierarchy && userData) {
+      bool success = val.every((element) => element);
+
+      if (success) {
         AppUtils.isSyncing = false;
         saveLastSyncTime();
         emit(SyncSuccessState());
@@ -77,60 +80,67 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
   }
 
   Future<bool> fetchSalesmanData(int? id) async {
-    bool products = await getProducts(id);
-    bool schemes = await getSchemes(id);
-    bool stores = await getStores(id);
-
-    return products && schemes && stores;
+    final success =
+        await Future.wait([getStores(id), getProducts(id), getSchemes(id)]);
+    return success.every((e) => e);
   }
 
   Future<bool> getProducts(int? id) async {
     final productsRemoteRepo = ProductsRemoteRepository();
     final res = await productsRemoteRepo.getProducts(id!);
-    res.fold((e) => print(e), (productResp) {
+    return await res.fold((e) => false, (productResp) async {
       if (productResp.data != null && productResp.data!.isNotEmpty) {
-        saveProductsToLocal(productResp.data!, id);
+        bool isInserted = await saveProductsToLocal(productResp.data!, id);
+        return isInserted;
+      } else {
+        return false;
       }
     });
-
-    return true;
   }
 
-  void saveProductsToLocal(List<Products> products, int salesmanId) {
+  Future<bool> saveProductsToLocal(
+      List<Products> products, int salesmanId) async {
     ProductsLocalRepository repo = ProductsLocalRepository();
-    repo.addProducts(products, salesmanId);
+    bool isInserted = await repo.addProducts(products, salesmanId);
+    return isInserted;
   }
 
   Future<bool> getSchemes(int? id) async {
     final schemesRemoteRepo = SchemesRemoteRepository();
     final res = await schemesRemoteRepo.getAllSchemes(false);
-    res.fold((e) => print(e), (schemes) {
+    return await res.fold((e) => false, (schemes) async {
       if (schemes.isNotEmpty) {
-        saveSchemesToLocal(schemes, id);
+        bool isInserted = await saveSchemesToLocal(schemes, id);
+        return isInserted;
+      } else {
+        return false;
       }
     });
-
-    return true;
   }
 
-  void saveSchemesToLocal(List<Schemes> schemes, int? salesmanId) {
+  Future<bool> saveSchemesToLocal(
+      List<Schemes> schemes, int? salesmanId) async {
     SchemesLocalRepository repo = SchemesLocalRepository();
-    repo.addAllSchemes(schemes, salesmanId!);
+    bool isInserted = await repo.addAllSchemes(schemes, salesmanId!);
+    return isInserted;
   }
 
   Future<bool> getStores(int? id) async {
     final res = await StoresRemoteRepository().getStores(id!);
-    res.fold((e) => print(e), (storeResp) {
+    return await res.fold((e) => false, (storeResp) async {
       if (storeResp.data != null && storeResp.data!.isNotEmpty) {
-        saveStoresDataToLocal(storeResp.data!, id);
+        bool isInserted = await saveStoresDataToLocal(storeResp.data!, id);
+        return isInserted;
+      } else {
+        return false;
       }
     });
-
-    return true;
   }
 
-  void saveStoresDataToLocal(List<Store> stores, int? salesmanId) {
+  Future<bool> saveStoresDataToLocal(
+      List<Store> stores, int? salesmanId) async {
     final repo = StoresLocalRepository();
-    repo.adAllStores(salesmanId!, stores);
+    final isInserted = await repo.adAllStores(salesmanId!, stores);
+    return isInserted;
   }
 }

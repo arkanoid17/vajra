@@ -15,9 +15,6 @@ import 'package:vajra_test/cores/themes/app_theme.dart';
 import 'package:vajra_test/cores/utils/date_utils.dart' as dateUtils;
 import 'package:vajra_test/features/auth/view/pages/login.dart';
 import 'package:vajra_test/features/home/model/repositories/home_local_repository.dart';
-import 'package:vajra_test/features/sync/model/models/userhierarchy/user_hierarchy_beats.dart';
-import 'package:vajra_test/features/sync/model/models/userhierarchy/user_hierarchy_beats_calendar.dart';
-import 'package:vajra_test/features/sync/model/repositories/userhierarchy/user_hierarchy_local_repository.dart';
 import 'package:vajra_test/init_dependencies.dart';
 
 class AppUtils {
@@ -36,7 +33,7 @@ Future<List<CountryCode>> loadCountries() async {
 }
 
 void showBottomDialog(BuildContext context, Widget widget,
-    [bool isScrollControlled = true]) {
+    [bool isScrollControlled = false]) {
   showModalBottomSheet(
     context: context,
     builder: (ctx) => widget,
@@ -122,12 +119,7 @@ Map<String, String> headers = {
 
 int getSalesmanId() {
   Box box = serviceLocator();
-  String data = box.get('user');
-
-  print(data);
-
-  UserData user = UserData.fromJson(jsonDecode(data));
-  return user.id ?? 0;
+  return box.get('id');
 }
 
 bool isSalesman() {
@@ -155,8 +147,8 @@ bool isSyncTime() {
     final lastSyncTime = DateFormat("dd/MM/yyyy hh:mm:ss a").parse(syncTime);
 
     final difference = dateUtils.DateUtils.getDifferenceInHours(
-      lastSyncTime,
       DateTime.now(),
+      lastSyncTime,
     );
 
     return difference >= AppUtils.syncInterval;
@@ -164,7 +156,6 @@ bool isSyncTime() {
     return false;
   }
 }
-
 
 double getDistance(
   double startLatitude,
@@ -178,8 +169,6 @@ double getDistance(
     endLatitude,
     endLongitude,
   );
-
-  print(distance);
 
   return distance;
 }

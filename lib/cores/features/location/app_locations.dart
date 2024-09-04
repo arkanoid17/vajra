@@ -23,8 +23,6 @@ class AppLocations {
         ? permissionHandler.Permission.location.request()
         : permissionHandler.Permission.locationWhenInUse.request());
 
-    print(await (status.isGranted));
-
     return status.isGranted;
   }
 
